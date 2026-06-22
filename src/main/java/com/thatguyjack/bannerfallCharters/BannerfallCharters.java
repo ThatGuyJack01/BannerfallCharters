@@ -1,6 +1,7 @@
 package com.thatguyjack.bannerfallCharters;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import pow.bannerfall.Bannerfall;
 
 public final class BannerfallCharters extends JavaPlugin {
 
