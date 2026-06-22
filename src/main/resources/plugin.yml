@@ -1,0 +1,4 @@
+name: BannerfallCharters
+version: '1.0-SNAPSHOT'
+main: com.thatguyjack.bannerfallCharters.BannerfallCharters
+api-version: '1.21'
