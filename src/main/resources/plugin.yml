@@ -1,4 +1,22 @@
 name: BannerfallCharters
-version: '1.0-SNAPSHOT'
+version: '${version}'
 main: com.thatguyjack.bannerfallCharters.BannerfallCharters
-api-version: '1.21'
+api-version: '1.21.11'
+authors: [ThatGuyJack]
+description: Custom player powers and Bannerfall modifications
+
+depend:
+  - Bannerfall
+  - DungeonFall
+  - Scheduler
+
+commands:
+  charter:
+    description: Main command for Bannerfall Charters.
+    usage: /charter
+    permission: bannerfallcharters.admin
+
+permissions:
+  bannerfallcharters.admin:
+    description: Allows use of Bannerfall Charters admin commands.
+    default: op
