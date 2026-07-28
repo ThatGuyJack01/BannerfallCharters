@@ -1,34 +1,12 @@
 @echo off
-setlocal
+setlocal EnableExtensions
 cd /d "%~dp0"
 
 set "SERVER_WINDOW_TITLE=Bannerfall Server"
-
-echo ========================================
-echo  Building BannerfallCharters
-echo ========================================
-echo.
-
-call gradlew.bat clean build
-if errorlevel 1 (
-    echo.
-    echo Build failed. The running server was left untouched.
-    pause
-    exit /b 1
-)
-
 set "BUILT_JAR=%CD%\build\libs\BannerfallCharters-1.0-SNAPSHOT.jar"
 for %%I in ("%CD%\..\..\server") do set "SERVER_DIR=%%~fI"
 set "PLUGIN_DIR=%SERVER_DIR%\plugins"
 set "TARGET_JAR=%PLUGIN_DIR%\BannerfallCharters-1.0-SNAPSHOT.jar"
-
-if not exist "%BUILT_JAR%" (
-    echo.
-    echo Could not find the built plugin:
-    echo %BUILT_JAR%
-    pause
-    exit /b 1
-)
 
 if not exist "%SERVER_DIR%" (
     echo.
@@ -40,20 +18,53 @@ if not exist "%SERVER_DIR%" (
 
 if not exist "%PLUGIN_DIR%" mkdir "%PLUGIN_DIR%"
 
+echo ========================================
+echo  Stopping Bannerfall Server
+echo ========================================
 echo.
-echo Closing any existing Paper server...
 
-rem Close servers started by this script, including their Java child process.
+rem First close the server window and every child process started from it.
 taskkill /F /T /FI "WINDOWTITLE eq %SERVER_WINDOW_TITLE%*" >nul 2>&1
 
-rem Also catch an older server instance that was started without the window title.
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$servers = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue).Where({ ($_.Name -eq 'java.exe' -or $_.Name -eq 'javaw.exe') -and $_.CommandLine -and $_.CommandLine.ToLower().Replace([char]34, '').Contains('-jar paper.jar') }); if ($servers.Count -eq 0) { Write-Host 'No matching Paper Java process found.'; exit 0 }; foreach ($server in $servers) { Write-Host ('Stopping Paper server PID ' + $server.ProcessId + '...'); Stop-Process -Id $server.ProcessId -Force -ErrorAction Stop }; Start-Sleep -Seconds 2"
+rem Catch Paper instances started another way, then wait until Java is truly gone.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$deadline = (Get-Date).AddSeconds(20); do { $servers = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { ($_.Name -eq 'java.exe' -or $_.Name -eq 'javaw.exe') -and $_.CommandLine -and $_.CommandLine.ToLower().Replace([char]34, '').Contains('-jar paper.jar') }); foreach ($server in $servers) { Write-Host ('Stopping Paper server PID ' + $server.ProcessId + '...'); Stop-Process -Id $server.ProcessId -Force -ErrorAction SilentlyContinue }; if ($servers.Count -gt 0) { Start-Sleep -Milliseconds 500 } } while ($servers.Count -gt 0 -and (Get-Date) -lt $deadline); $remaining = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { ($_.Name -eq 'java.exe' -or $_.Name -eq 'javaw.exe') -and $_.CommandLine -and $_.CommandLine.ToLower().Replace([char]34, '').Contains('-jar paper.jar') }); if ($remaining.Count -gt 0) { Write-Host 'The Paper Java process is still running.'; exit 1 }; Write-Host 'Paper server is fully stopped.'"
 
 if errorlevel 1 (
     echo.
     echo The server process could not be stopped.
     echo Try right-clicking this script and choosing "Run as administrator".
+    pause
+    exit /b 1
+)
+
+rem Wait until Windows releases the old plugin JAR before building or copying.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$path = $env:TARGET_JAR; if (-not (Test-Path -LiteralPath $path)) { exit 0 }; $deadline = (Get-Date).AddSeconds(20); do { try { $stream = [System.IO.File]::Open($path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None); $stream.Close(); exit 0 } catch { Start-Sleep -Milliseconds 500 } } while ((Get-Date) -lt $deadline); Write-Host ('The plugin JAR is still in use: ' + $path); exit 1"
+
+if errorlevel 1 (
+    echo.
+    echo The old plugin JAR is still locked and cannot be replaced.
+    pause
+    exit /b 1
+)
+
+echo.
+echo ========================================
+echo  Building BannerfallCharters
+echo ========================================
+echo.
+
+call gradlew.bat clean build
+if errorlevel 1 (
+    echo.
+    echo Build failed. The server remains stopped so the old plugin is not restarted accidentally.
+    pause
+    exit /b 1
+)
+
+if not exist "%BUILT_JAR%" (
+    echo.
+    echo Could not find the built plugin:
+    echo %BUILT_JAR%
     pause
     exit /b 1
 )
@@ -64,7 +75,7 @@ copy /Y "%BUILT_JAR%" "%TARGET_JAR%" >nul
 if errorlevel 1 (
     echo.
     echo Failed to copy the plugin JAR.
-    echo Make sure the old server is fully closed.
+    echo The server is stopped, but Windows still prevented the replacement.
     pause
     exit /b 1
 )
