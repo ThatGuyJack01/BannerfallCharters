@@ -1,7 +1,8 @@
 package com.thatguyjack.bannerfallCharters;
 
 import com.scheduler.Scheduler;
-import com.thatguyjack.bannerfallCharters.commands.CharterCommand;
+import com.thatguyjack.bannerfallCharters.commands.BFChartersCommand;
+import com.thatguyjack.bannerfallCharters.managers.CharterManager;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,17 +14,21 @@ public final class BannerfallCharters extends JavaPlugin {
     private DungeonFall dungeonFall;
     private Scheduler scheduler;
 
+    private CharterManager charterManager;
 
     @Override
     public void onEnable() {
-        // saveDefaultConfig();
+        saveDefaultConfig();
 
         this.bannerfall = requirePlugin("Bannerfall", Bannerfall.class);
         this.dungeonFall = requirePlugin("DungeonFall", DungeonFall.class);
         this.scheduler = requirePlugin("Scheduler", Scheduler.class);
 
-        CharterCommand charterCommand = new CharterCommand(this);
-        PluginCommand pluginCommand = getCommand("charter");
+        this.charterManager = new CharterManager(this);
+        this.charterManager.load();
+
+        BFChartersCommand charterCommand = new BFChartersCommand(this);
+        PluginCommand pluginCommand = getCommand("bfcharters");
         if (pluginCommand != null) {
             pluginCommand.setExecutor(charterCommand);
             pluginCommand.setTabCompleter(charterCommand);
@@ -54,6 +59,10 @@ public final class BannerfallCharters extends JavaPlugin {
 
     public Scheduler scheduler() {
         return scheduler;
+    }
+
+    public CharterManager charterManager() {
+        return charterManager;
     }
 
 }

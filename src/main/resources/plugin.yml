@@ -11,9 +11,9 @@ depend:
   - Scheduler
 
 commands:
-  charter:
+  bfcharters:
     description: Main command for Bannerfall Charters.
-    usage: /charter
+    usage: /bfcharters
     permission: bannerfallcharters.admin
 
 permissions:
