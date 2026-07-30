@@ -56,18 +56,17 @@ public final class CharterManager {
         plugin.saveConfig();;
     }
 
-    public void setCharacter(OfflinePlayer player, String charterId) {
+    public void setCharter(OfflinePlayer player, String charterId) {
         UUID uuid = player.getUniqueId();
 
         playerCharters.put(uuid, charterId.toLowerCase());
 
         String path = "charters.players." + uuid;
-        plugin.getConfig().set(path + ".name", player.getName());
         plugin.getConfig().set(path + ".charter", charterId.toLowerCase());
         plugin.saveConfig();
     }
 
-    public boolean removeCharacter(OfflinePlayer player) {
+    public boolean removeCharter(OfflinePlayer player) {
         UUID uuid = player.getUniqueId();
 
         boolean existed = playerCharters.remove(uuid) != null;

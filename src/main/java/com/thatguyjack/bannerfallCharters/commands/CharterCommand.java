@@ -1,6 +1,7 @@
 package com.thatguyjack.bannerfallCharters.commands;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
+import com.thatguyjack.bannerfallCharters.charters.Charter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -15,12 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public final class BFChartersCommand implements CommandExecutor, TabCompleter {
+public final class CharterCommand implements CommandExecutor, TabCompleter {
     private final BannerfallCharters plugin;
 
-    List<String> chartersList = new ArrayList<>(List.of("test1", "test2", "test3"));
-
-    public BFChartersCommand(BannerfallCharters plugin) {
+    public CharterCommand(BannerfallCharters plugin) {
         this.plugin = plugin;
     }
 
@@ -65,12 +64,13 @@ public final class BFChartersCommand implements CommandExecutor, TabCompleter {
                 String targetName = target.getName() != null ? target.getName() : args[1];
 
                 String charterID = args[2].toLowerCase(Locale.ROOT);
-                if (chartersList.stream().noneMatch(charterID::equalsIgnoreCase)) {
+                if (!plugin.charterRegistry().exists(charterID)) {
                     sender.sendMessage(ChatColor.RED + "Please enter a valid Charter ID.");
                     return;
                 }
 
-                plugin.charterManager().setCharacter(target, charterID);
+                plugin.bannerfallAbilityCleaner().clearFor(target);
+                plugin.charterManager().setCharter(target, charterID);
 
                 sender.sendMessage(ChatColor.GREEN + "Set " + targetName + "'s charter to " + charterID);
             }
@@ -84,7 +84,7 @@ public final class BFChartersCommand implements CommandExecutor, TabCompleter {
                 OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
                 String targetName = target.getName() != null ? target.getName() : args[1];
 
-                boolean removed = plugin.charterManager().removeCharacter(target);
+                boolean removed = plugin.charterManager().removeCharter(target);
 
                 if (removed) sender.sendMessage(ChatColor.GREEN + "Cleared " + targetName + "'s charter");
                 else sender.sendMessage(ChatColor.RED + targetName + " does not have an active charter");
@@ -168,7 +168,9 @@ public final class BFChartersCommand implements CommandExecutor, TabCompleter {
             };
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("set")) {
-            return startsWith(args[2], chartersList.toArray(String[]::new));
+            return startsWith(args[2], plugin.charterRegistry().getAllCharters().stream()
+                                                .map(Charter::id)
+                                                .toArray(String[]::new));
         }
 
         return List.of();

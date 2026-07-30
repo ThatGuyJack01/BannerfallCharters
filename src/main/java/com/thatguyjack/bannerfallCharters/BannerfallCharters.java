@@ -1,8 +1,14 @@
 package com.thatguyjack.bannerfallCharters;
 
 import com.scheduler.Scheduler;
-import com.thatguyjack.bannerfallCharters.commands.BFChartersCommand;
+import com.thatguyjack.bannerfallCharters.abilities.CharterAbilityManager;
+import com.thatguyjack.bannerfallCharters.abilities.CharterPassiveTicker;
+import com.thatguyjack.bannerfallCharters.charters.CharterRegistry;
+import com.thatguyjack.bannerfallCharters.commands.CharterCommand;
 import com.thatguyjack.bannerfallCharters.managers.CharterManager;
+import com.thatguyjack.bannerfallCharters.listeners.AbilityCommandListener;
+import com.thatguyjack.bannerfallCharters.listeners.BannerfallAbilityBlockerListener;
+import com.thatguyjack.bannerfallCharters.bannerfall.BannerfallAbilityCleaner;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -15,6 +21,10 @@ public final class BannerfallCharters extends JavaPlugin {
     private Scheduler scheduler;
 
     private CharterManager charterManager;
+    private CharterRegistry charterRegistry;
+
+    private CharterAbilityManager charterAbilityManager;
+    private BannerfallAbilityCleaner bannerfallAbilityCleaner;
 
     @Override
     public void onEnable() {
@@ -27,12 +37,24 @@ public final class BannerfallCharters extends JavaPlugin {
         this.charterManager = new CharterManager(this);
         this.charterManager.load();
 
-        BFChartersCommand charterCommand = new BFChartersCommand(this);
-        PluginCommand pluginCommand = getCommand("bfcharters");
+        this.charterRegistry = new CharterRegistry();
+        this.charterRegistry.registerDefaults();
+
+        this.charterAbilityManager = new CharterAbilityManager(this);
+        this.bannerfallAbilityCleaner = new BannerfallAbilityCleaner(this);
+
+        new CharterPassiveTicker(this).runTaskTimer(this, 20L, 20L);
+
+        getServer().getPluginManager().registerEvents(new BannerfallAbilityBlockerListener(this), this);
+        getServer().getPluginManager().registerEvents(new AbilityCommandListener(this), this);
+
+        CharterCommand charterCommand = new CharterCommand(this);
+        PluginCommand pluginCommand = getCommand("charter");
         if (pluginCommand != null) {
             pluginCommand.setExecutor(charterCommand);
             pluginCommand.setTabCompleter(charterCommand);
         }
+
         getLogger().info("Bannerfall Charter enabled.");
     }
 
@@ -65,4 +87,15 @@ public final class BannerfallCharters extends JavaPlugin {
         return charterManager;
     }
 
+    public CharterRegistry charterRegistry() {
+        return charterRegistry;
+    }
+
+    public CharterAbilityManager charterAbilityManager() {
+        return charterAbilityManager;
+    }
+
+    public BannerfallAbilityCleaner bannerfallAbilityCleaner() {
+        return bannerfallAbilityCleaner;
+    }
 }
