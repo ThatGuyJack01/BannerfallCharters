@@ -1,7 +1,6 @@
-package com.thatguyjack.bannerfallCharters.abilities;
+package com.thatguyjack.bannerfallCharters.core;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
-import com.thatguyjack.bannerfallCharters.charters.Charter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;

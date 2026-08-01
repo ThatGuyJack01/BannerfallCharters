@@ -1,14 +1,14 @@
 package com.thatguyjack.bannerfallCharters;
 
 import com.scheduler.Scheduler;
-import com.thatguyjack.bannerfallCharters.abilities.CharterAbilityManager;
-import com.thatguyjack.bannerfallCharters.abilities.CharterPassiveTicker;
-import com.thatguyjack.bannerfallCharters.charters.CharterRegistry;
+import com.thatguyjack.bannerfallCharters.core.CharterAbilityManager;
+import com.thatguyjack.bannerfallCharters.core.CharterPassiveTicker;
+import com.thatguyjack.bannerfallCharters.core.CharterRegistry;
 import com.thatguyjack.bannerfallCharters.commands.CharterCommand;
-import com.thatguyjack.bannerfallCharters.managers.CharterManager;
+import com.thatguyjack.bannerfallCharters.core.CharterManager;
 import com.thatguyjack.bannerfallCharters.listeners.AbilityCommandListener;
 import com.thatguyjack.bannerfallCharters.listeners.BannerfallAbilityBlockerListener;
-import com.thatguyjack.bannerfallCharters.bannerfall.BannerfallAbilityCleaner;
+import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannerfallAbilityCleaner;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;

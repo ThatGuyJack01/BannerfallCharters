@@ -1,7 +1,7 @@
 package com.thatguyjack.bannerfallCharters.listeners;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
-import com.thatguyjack.bannerfallCharters.abilities.AbilitySlot;
+import com.thatguyjack.bannerfallCharters.core.AbilitySlot;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;

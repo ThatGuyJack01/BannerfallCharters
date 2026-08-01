@@ -1,7 +1,7 @@
-package com.thatguyjack.bannerfallCharters.abilities.implemented;
+package com.thatguyjack.bannerfallCharters.charters.test;
 
-import com.thatguyjack.bannerfallCharters.abilities.AbilitySlot;
-import com.thatguyjack.bannerfallCharters.abilities.CommandCharterAbility;
+import com.thatguyjack.bannerfallCharters.core.AbilitySlot;
+import com.thatguyjack.bannerfallCharters.core.CommandCharterAbility;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;

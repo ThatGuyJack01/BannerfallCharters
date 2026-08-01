@@ -1,7 +1,7 @@
 package com.thatguyjack.bannerfallCharters.commands;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
-import com.thatguyjack.bannerfallCharters.charters.Charter;
+import com.thatguyjack.bannerfallCharters.core.Charter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;

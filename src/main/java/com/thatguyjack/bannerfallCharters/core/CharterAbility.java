@@ -1,4 +1,4 @@
-package com.thatguyjack.bannerfallCharters.abilities;
+package com.thatguyjack.bannerfallCharters.core;
 
 public interface CharterAbility {
     String id();

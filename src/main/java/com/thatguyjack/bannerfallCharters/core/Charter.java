@@ -1,6 +1,4 @@
-package com.thatguyjack.bannerfallCharters.charters;
-
-import com.thatguyjack.bannerfallCharters.abilities.CharterAbility;
+package com.thatguyjack.bannerfallCharters.core;
 
 import java.util.List;
 import java.util.Locale;

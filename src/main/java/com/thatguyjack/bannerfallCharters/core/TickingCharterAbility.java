@@ -1,4 +1,4 @@
-package com.thatguyjack.bannerfallCharters.abilities;
+package com.thatguyjack.bannerfallCharters.core;
 
 import org.bukkit.entity.Player;
 

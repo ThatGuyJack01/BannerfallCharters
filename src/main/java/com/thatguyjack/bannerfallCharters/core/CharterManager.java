@@ -1,4 +1,4 @@
-package com.thatguyjack.bannerfallCharters.managers;
+package com.thatguyjack.bannerfallCharters.core;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
 import org.bukkit.OfflinePlayer;

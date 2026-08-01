@@ -1,7 +1,6 @@
-package com.thatguyjack.bannerfallCharters.abilities;
+package com.thatguyjack.bannerfallCharters.core;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
-import com.thatguyjack.bannerfallCharters.charters.Charter;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;

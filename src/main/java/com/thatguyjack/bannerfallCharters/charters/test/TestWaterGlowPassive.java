@@ -1,6 +1,6 @@
-package com.thatguyjack.bannerfallCharters.abilities.implemented;
+package com.thatguyjack.bannerfallCharters.charters.test;
 
-import com.thatguyjack.bannerfallCharters.abilities.TickingCharterAbility;
+import com.thatguyjack.bannerfallCharters.core.TickingCharterAbility;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;

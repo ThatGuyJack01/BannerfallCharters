@@ -1,4 +1,4 @@
-package com.thatguyjack.bannerfallCharters.bannerfall;
+package com.thatguyjack.bannerfallCharters.integrations.bannerfall;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
 import org.bukkit.Bukkit;

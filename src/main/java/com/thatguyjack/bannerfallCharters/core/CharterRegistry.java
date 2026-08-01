@@ -1,7 +1,7 @@
-package com.thatguyjack.bannerfallCharters.charters;
+package com.thatguyjack.bannerfallCharters.core;
 
-import com.thatguyjack.bannerfallCharters.abilities.implemented.TestPoofAbility;
-import com.thatguyjack.bannerfallCharters.abilities.implemented.TestWaterGlowPassive;
+import com.thatguyjack.bannerfallCharters.charters.test.TestPoofAbility;
+import com.thatguyjack.bannerfallCharters.charters.test.TestWaterGlowPassive;
 
 import java.util.*;
 
