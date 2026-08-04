@@ -1,12 +1,19 @@
 package com.thatguyjack.bannerfallCharters.core;
 
+import com.thatguyjack.bannerfallCharters.BannerfallCharters;
+import com.thatguyjack.bannerfallCharters.charters.photopho.CanaryCollisionAbility;
 import com.thatguyjack.bannerfallCharters.charters.test.TestPoofAbility;
 import com.thatguyjack.bannerfallCharters.charters.test.TestWaterGlowPassive;
 
 import java.util.*;
 
 public final class CharterRegistry {
+    private final BannerfallCharters plugin;
     private final Map<String, Charter> charters = new HashMap<>();
+
+    public CharterRegistry(BannerfallCharters plugin) {
+        this.plugin = plugin;
+    }
 
     public void registerDefaults() {
         register(new Charter(
@@ -15,6 +22,13 @@ public final class CharterRegistry {
                 List.of(
                         new TestPoofAbility(),
                         new TestWaterGlowPassive()
+                )
+        ));
+        register(new Charter(
+                "photopho",
+                "Photopho",
+                List.of(
+                        new CanaryCollisionAbility(plugin)
                 )
         ));
     }

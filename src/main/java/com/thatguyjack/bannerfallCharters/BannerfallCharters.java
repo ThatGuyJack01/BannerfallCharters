@@ -37,7 +37,7 @@ public final class BannerfallCharters extends JavaPlugin {
         this.charterManager = new CharterManager(this);
         this.charterManager.load();
 
-        this.charterRegistry = new CharterRegistry();
+        this.charterRegistry = new CharterRegistry(this);
         this.charterRegistry.registerDefaults();
 
         this.charterAbilityManager = new CharterAbilityManager(this);
