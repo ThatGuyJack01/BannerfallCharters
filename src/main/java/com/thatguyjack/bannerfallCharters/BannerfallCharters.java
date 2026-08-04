@@ -6,6 +6,7 @@ import com.thatguyjack.bannerfallCharters.core.CharterPassiveTicker;
 import com.thatguyjack.bannerfallCharters.core.CharterRegistry;
 import com.thatguyjack.bannerfallCharters.commands.CharterCommand;
 import com.thatguyjack.bannerfallCharters.core.CharterManager;
+import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannerfallFallDamageImmunityManager;
 import com.thatguyjack.bannerfallCharters.listeners.AbilityCommandListener;
 import com.thatguyjack.bannerfallCharters.listeners.BannerfallAbilityBlockerListener;
 import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannerfallAbilityCleaner;
@@ -26,6 +27,8 @@ public final class BannerfallCharters extends JavaPlugin {
     private CharterAbilityManager charterAbilityManager;
     private BannerfallAbilityCleaner bannerfallAbilityCleaner;
 
+    private BannerfallFallDamageImmunityManager bannerfallFallDamageImmunityManager;
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
@@ -42,6 +45,8 @@ public final class BannerfallCharters extends JavaPlugin {
 
         this.charterAbilityManager = new CharterAbilityManager(this);
         this.bannerfallAbilityCleaner = new BannerfallAbilityCleaner(this);
+
+        this.bannerfallFallDamageImmunityManager = new BannerfallFallDamageImmunityManager(this);
 
         new CharterPassiveTicker(this).runTaskTimer(this, 20L, 20L);
 
@@ -97,5 +102,9 @@ public final class BannerfallCharters extends JavaPlugin {
 
     public BannerfallAbilityCleaner bannerfallAbilityCleaner() {
         return bannerfallAbilityCleaner;
+    }
+
+    public BannerfallFallDamageImmunityManager bannerfallFallDamageImmunityManager() {
+        return bannerfallFallDamageImmunityManager;
     }
 }
