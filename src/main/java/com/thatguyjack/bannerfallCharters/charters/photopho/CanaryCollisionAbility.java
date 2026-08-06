@@ -130,7 +130,7 @@ public class CanaryCollisionAbility implements CommandCharterAbility {
 
         Vector look = player.getLocation().getDirection();
 
-        if (pitch <= -85) {
+        if (pitch <= -80) {
             return new Vector(0, ANGLED_VERTICAL_SPEED, 0);
         }
 
