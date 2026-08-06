@@ -37,14 +37,6 @@ public class CanaryCollisionAbility implements CommandCharterAbility {
 
     private static final int DASH_TRAIL_TICKS = DASH_TICKS;
 
-    private static final int TRAIL_PARTICLE_COUNT = 5;
-    private static final double TRAIL_PARTICLE_SPREAD = 0.22;
-    private static final double TRAIL_PARTICLE_SPEED = 0.015;
-
-    private static final int HIT_PARTICLE_COUNT = 24;
-    private static final double HIT_PARTICLE_SPREAD = 0.45;
-    private static final double HIT_PARTICLE_SPEED = 0.06;
-
     private static final Particle.DustOptions CANARY_DUST = new Particle.DustOptions(
             Color.fromRGB(255, 235, 120),
             0.95f
@@ -98,12 +90,11 @@ public class CanaryCollisionAbility implements CommandCharterAbility {
 
         player.setVelocity(dash);
 
-
         //stupid bugfix. FIX LATER
         plugin.bannerfallFallDamageImmunityManager().grantUntilGround(player);
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline()) {
+            if (player.isOnline() || player.isDead()) {
                 plugin.bannerfallFallDamageImmunityManager().grantUntilGround(player);
             }
         }, 6L);
@@ -113,7 +104,7 @@ public class CanaryCollisionAbility implements CommandCharterAbility {
         player.setRiptiding(true);
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline()) {
+            if (player.isOnline() || player.isDead()) {
                 startSlowFalling(player);
             }
         }, 15L);
