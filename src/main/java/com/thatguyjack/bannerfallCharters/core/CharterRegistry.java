@@ -1,6 +1,7 @@
 package com.thatguyjack.bannerfallCharters.core;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
+import com.thatguyjack.bannerfallCharters.charters.loserboy.AerialAceAbility;
 import com.thatguyjack.bannerfallCharters.charters.photopho.CanaryCollisionAbility;
 import com.thatguyjack.bannerfallCharters.charters.test.TestPoofAbility;
 import com.thatguyjack.bannerfallCharters.charters.test.TestWaterGlowPassive;
@@ -29,6 +30,13 @@ public final class CharterRegistry {
                 "Photopho",
                 List.of(
                         new CanaryCollisionAbility(plugin)
+                )
+        ));
+        register(new Charter(
+                "loserboy",
+                "Loserboy",
+                List.of(
+                        new AerialAceAbility(plugin)
                 )
         ));
     }

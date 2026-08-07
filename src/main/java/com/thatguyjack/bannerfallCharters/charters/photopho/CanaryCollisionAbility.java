@@ -94,7 +94,7 @@ public class CanaryCollisionAbility implements CommandCharterAbility {
         plugin.bannerfallFallDamageImmunityManager().grantUntilGround(player);
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline() || player.isDead()) {
+            if (player.isOnline() && !player.isDead()) {
                 plugin.bannerfallFallDamageImmunityManager().grantUntilGround(player);
             }
         }, 6L);
