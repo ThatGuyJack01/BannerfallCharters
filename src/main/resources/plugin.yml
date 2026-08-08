@@ -1,4 +1,4 @@
-name: BannerfallCharters
+name: Bannersbane
 version: '${version}'
 main: com.thatguyjack.bannerfallCharters.BannerfallCharters
 api-version: '1.21.11'
@@ -12,12 +12,20 @@ depend:
   - ProtocolLib
 
 commands:
-  charter:
-    description: Main command for Bannerfall Charters.
-    usage: /charter
-    permission: bannerfallcharters.admin
+  bannersbane:
+    description: Main command for Bannersbane.
+    usage: /bannersbane
+    permission: bannersbane.admin
+    aliases:
+      - bb
+      - bsbane
+      - charter
 
 permissions:
+  bannersbane.admin:
+    description: Allows use of Bannersbane admin commands.
+    default: op
+
   bannerfallcharters.admin:
-    description: Allows use of Bannerfall Charters admin commands.
+    description: Legacy permission for old Bannerfall Charters command access.
     default: op

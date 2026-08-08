@@ -35,7 +35,7 @@ public final class BannerfallAbilityBlockerListener implements Listener {
 
         event.setCancelled(true);
 
-        player.sendMessage(ChatColor.RED + "You cannot select a Bannerfall ability while you have an active charter.");
+        player.sendMessage(ChatColor.RED + "You cannot select a Bannerfall ability while you have an active Bannersbane power.");
 
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             plugin.bannerfallAbilityCleaner().clearFor(player);

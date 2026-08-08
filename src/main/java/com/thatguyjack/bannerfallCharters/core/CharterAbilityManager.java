@@ -32,7 +32,9 @@ public final class CharterAbilityManager {
             return;
         }
 
-        if(player.getGameMode() == GameMode.SPECTATOR) {
+        boolean isDebugPower = charterId.equalsIgnoreCase("thatguyjack");
+
+        if(player.getGameMode() == GameMode.SPECTATOR && !isDebugPower) {
             player.sendMessage(ChatColor.RED + "You cant activate this ability in spectator mode.");
             return;
         }

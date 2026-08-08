@@ -36,20 +36,19 @@ public class BannersbaneMessageRewriter {
         ) {
             @Override
             public void onPacketSending(PacketEvent event) {
-                PacketType type = event.getPacketType();
-
-                plugin.getLogger().info("[BannersbaneDebug] Saw packet: " + type.name());
-
-                rewriteStrings(event, type);
-                rewriteChatComponents(event, type);
-                debugPacket(event, type);
+                try {
+                    rewriteStrings(event);
+                    rewriteChatComponents(event);
+                } catch (Exception exception) {
+                    plugin.getLogger().warning("Failed to rewrite Bannersbane text packet: " + exception.getMessage());
+                }
             }
         });
 
         plugin.getLogger().info("Bannersbane message rewriter enabled.");
     }
 
-    private void rewriteStrings(PacketEvent event, PacketType type) {
+    private void rewriteStrings(PacketEvent event) {
         for (int i = 0; i < event.getPacket().getStrings().size(); i++) {
             String original = event.getPacket().getStrings().readSafely(i);
 
@@ -57,18 +56,15 @@ public class BannersbaneMessageRewriter {
                 continue;
             }
 
-            plugin.getLogger().info("[BannersbaneDebug] " + type.name() + " string[" + i + "]: " + original);
-
             String replaced = BannersbaneTextSkin.apply(original);
 
             if (!original.equals(replaced)) {
-                plugin.getLogger().info("[BannersbaneDebug] Rewriting string[" + i + "]: " + replaced);
                 event.getPacket().getStrings().writeSafely(i, replaced);
             }
         }
     }
 
-    private void rewriteChatComponents(PacketEvent event, PacketType type) {
+    private void rewriteChatComponents(PacketEvent event) {
         for (int i = 0; i < event.getPacket().getChatComponents().size(); i++) {
             WrappedChatComponent component = event.getPacket().getChatComponents().readSafely(i);
 
@@ -82,29 +78,18 @@ public class BannersbaneMessageRewriter {
                 continue;
             }
 
-            plugin.getLogger().info("[BannersbaneDebug] " + type.name() + " chatComponent[" + i + "]: " + originalJson);
-
             String replacedJson = BannersbaneTextSkin.apply(originalJson);
 
             if (!originalJson.equals(replacedJson)) {
-                plugin.getLogger().info("[BannersbaneDebug] Rewriting chatComponent[" + i + "]: " + replacedJson);
-
-                event.getPacket().getChatComponents().writeSafely(
-                        i,
-                        WrappedChatComponent.fromJson(replacedJson)
-                );
+                try {
+                    event.getPacket().getChatComponents().writeSafely(
+                            i,
+                            WrappedChatComponent.fromJson(replacedJson)
+                    );
+                } catch (Exception exception) {
+                    plugin.getLogger().warning("Could not rewrite chat component JSON: " + exception.getMessage());
+                }
             }
-        }
-    }
-
-    private void debugPacket(PacketEvent event, PacketType type) {
-        try {
-            Object handle = event.getPacket().getHandle();
-
-            plugin.getLogger().info("[BannersbaneDebug] " + type.name() + " handle class: " + handle.getClass().getName());
-            plugin.getLogger().info("[BannersbaneDebug] " + type.name() + " packet dump: " + event.getPacket());
-        } catch (Exception exception) {
-            plugin.getLogger().warning("[BannersbaneDebug] Could not dump packet: " + exception.getMessage());
         }
     }
 }

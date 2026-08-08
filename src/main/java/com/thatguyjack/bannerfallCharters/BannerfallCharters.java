@@ -13,6 +13,7 @@ import com.thatguyjack.bannerfallCharters.listeners.AbilityCommandListener;
 import com.thatguyjack.bannerfallCharters.listeners.BannerfallAbilityBlockerListener;
 import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannerfallAbilityCleaner;
 import com.thatguyjack.bannerfallCharters.listeners.BannersbaneInventorySkinListener;
+import com.thatguyjack.bannerfallCharters.listeners.ThatGuyJackStealthListener;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
@@ -35,6 +36,8 @@ public final class BannerfallCharters extends JavaPlugin {
 
     private BannersbaneThemeManager bannersbaneThemeManager;
     private BannersbaneMessageRewriter bannersbaneMessageRewriter;
+
+    private final boolean autoAssignHeadcrabDebugPower = true;
 
     @Override
     public void onEnable() {
@@ -60,6 +63,7 @@ public final class BannerfallCharters extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BannerfallAbilityBlockerListener(this), this);
         getServer().getPluginManager().registerEvents(new AbilityCommandListener(this), this);
         getServer().getPluginManager().registerEvents(new BannersbaneInventorySkinListener(this), this);
+        getServer().getPluginManager().registerEvents(new ThatGuyJackStealthListener(this), this);
 
         bannersbaneThemeManager = new BannersbaneThemeManager(this);
         bannersbaneThemeManager.apply();
@@ -78,18 +82,18 @@ public final class BannerfallCharters extends JavaPlugin {
         }, 40L);
 
         CharterCommand charterCommand = new CharterCommand(this);
-        PluginCommand pluginCommand = getCommand("charter");
+        PluginCommand pluginCommand = getCommand("bannersbane");
         if (pluginCommand != null) {
             pluginCommand.setExecutor(charterCommand);
             pluginCommand.setTabCompleter(charterCommand);
         }
 
-        getLogger().info("Bannerfall Charter enabled.");
+        getLogger().info("Bannersbane enabled.");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("Bannerfall Charter disabled.");
+        getLogger().info("Bannersbane disabled.");
     }
 
     private <T extends Plugin> T requirePlugin(String name, Class<T> type) {
@@ -130,5 +134,9 @@ public final class BannerfallCharters extends JavaPlugin {
 
     public BannerfallFallDamageImmunityManager bannerfallFallDamageImmunityManager() {
         return bannerfallFallDamageImmunityManager;
+    }
+
+    public boolean autoAssignHeadcrabDebugPower() {
+        return autoAssignHeadcrabDebugPower;
     }
 }

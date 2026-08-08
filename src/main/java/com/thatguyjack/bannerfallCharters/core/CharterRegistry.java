@@ -5,6 +5,7 @@ import com.thatguyjack.bannerfallCharters.charters.loserboy.AerialAceAbility;
 import com.thatguyjack.bannerfallCharters.charters.photopho.CanaryCollisionAbility;
 import com.thatguyjack.bannerfallCharters.charters.test.TestPoofAbility;
 import com.thatguyjack.bannerfallCharters.charters.test.TestWaterGlowPassive;
+import com.thatguyjack.bannerfallCharters.charters.thatguyjack.ModeToggleAbility;
 
 import java.util.*;
 
@@ -25,6 +26,13 @@ public final class CharterRegistry {
 //                        new TestWaterGlowPassive()
 //                )
 //        ));
+        register(new Charter(
+                "thatguyjack",
+                "ThatGuyJack",
+                List.of(
+                        new ModeToggleAbility()
+                )
+        ));
         register(new Charter(
                 "photopho",
                 "Photopho",
