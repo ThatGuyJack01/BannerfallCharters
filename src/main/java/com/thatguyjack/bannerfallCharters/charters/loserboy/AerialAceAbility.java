@@ -42,9 +42,10 @@ public class AerialAceAbility implements CommandCharterAbility {
 
     private double SWORD_SLASH_RADIUS = 2.8;
     private double SWORD_SLASH_HEIGHT = -0.8;
+    private double SLASH_UPWARD_EXTENSION = 1.5;
     private double SWORD_SLASH_ARC_DEGREES = 145.0;
 
-    private double SLASH_DAMAGE_MULTIPLIER = 0.45;
+    private double SLASH_DAMAGE_MULTIPLIER = 1.1;
 
     private static final Particle.DustOptions AERIAL_DUST = new Particle.DustOptions(
             Color.fromRGB(180, 225, 255),
@@ -89,7 +90,7 @@ public class AerialAceAbility implements CommandCharterAbility {
 
     @Override
     public int cooldownSeconds() {
-        return 60;
+        return 30;
     }
 
     @Override
@@ -104,6 +105,11 @@ public class AerialAceAbility implements CommandCharterAbility {
 
     @Override
     public boolean activate(Player player) {
+        if (player.isInWater()) {
+            player.sendMessage(ChatColor.RED + "You cannot use Aerial Ace while in water.");
+            return false;
+        }
+
         if(!isHoldingSword(player)) {
             player.sendMessage(ChatColor.RED + "You need to be holding a sword to use Aerial Ace.");
             return false;
@@ -199,7 +205,7 @@ public class AerialAceAbility implements CommandCharterAbility {
                 for (Entity entity : vortexCenter.getWorld().getNearbyEntities(
                         vortexCenter,
                         PULL_RADIUS*1.1,
-                        PULL_RADIUS*1.1,
+                        PULL_RADIUS*0.5,
                         PULL_RADIUS*1.1
                 )) {
                     if(!(entity instanceof LivingEntity target)) {
@@ -207,6 +213,10 @@ public class AerialAceAbility implements CommandCharterAbility {
                     }
 
                     if(target.getUniqueId().equals(player.getUniqueId())) {
+                        continue;
+                    }
+
+                    if (!hasLineOfSight(player, target)) {
                         continue;
                     }
 
@@ -276,7 +286,22 @@ public class AerialAceAbility implements CommandCharterAbility {
                 continue;
             }
 
-            launchAndHover(target);
+            if (!hasLineOfSight(player, target)) {
+                continue;
+            }
+
+            double heightDifference =
+                    player.getLocation().getY() - target.getLocation().getY();
+
+            double adjustedLaunchSpeed =
+                    LAUNCH_SPEED + (heightDifference / LAUNCH_CUTOFF_TICKS);
+
+            adjustedLaunchSpeed = Math.max(
+                    0.2,
+                    Math.min(LAUNCH_SPEED * 1.75, adjustedLaunchSpeed)
+            );
+
+            launchAndHover(target, adjustedLaunchSpeed, player);
         }
 
         Location center = player.getLocation().clone().add(0, 1.0, 0);
@@ -309,7 +334,7 @@ public class AerialAceAbility implements CommandCharterAbility {
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline() && !player.isDead()) {
-                startSlashSequence(player, targets, usedSword);
+                startSlashSequence(player, usedSword);
             }
         }, LAUNCH_CUTOFF_TICKS);
 
@@ -331,6 +356,22 @@ public class AerialAceAbility implements CommandCharterAbility {
             }
 
             startHover(entity);
+        }, LAUNCH_CUTOFF_TICKS);
+    }
+
+    private void launchAndHover(LivingEntity entity, double launchSpeed, Player heightReference) {
+        entity.setVelocity(new Vector(0, launchSpeed, 0));
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if(entity.isDead() || !entity.isValid()) {
+                return;
+            }
+
+            Vector velocity = entity.getVelocity();
+            velocity.setY(POST_LAUNCH_Y);
+            entity.setVelocity(velocity);
+
+            startHover(entity, heightReference);
         }, LAUNCH_CUTOFF_TICKS);
     }
 
@@ -359,7 +400,45 @@ public class AerialAceAbility implements CommandCharterAbility {
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    private void startSlashSequence(Player player, List<LivingEntity> targets, ItemStack sword) {
+    private void startHover(LivingEntity entity, Player heightReference) {
+        new BukkitRunnable() {
+            private int ticks = 0;
+
+            @Override
+            public void run() {
+                if (entity.isDead() || !entity.isValid()
+                        || !heightReference.isOnline()
+                        || heightReference.isDead()) {
+                    cancel();
+                    return;
+                }
+
+                double heightDifference =
+                        heightReference.getLocation().getY()
+                                - entity.getLocation().getY();
+
+                double verticalVelocity =
+                        0.02 + heightDifference * 0.25;
+
+                verticalVelocity = Math.max(
+                        -0.25,
+                        Math.min(0.25, verticalVelocity)
+                );
+
+                Vector velocity = entity.getVelocity();
+                velocity.setY(verticalVelocity);
+                entity.setVelocity(velocity);
+
+                ticks++;
+
+                if (ticks >= AIR_TICKS) {
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void startSlashSequence(Player player, ItemStack sword) {
         for (int i = 0; i < SLASH_COUNT; i++) {
             int slashIndex = i;
 
@@ -370,7 +449,7 @@ public class AerialAceAbility implements CommandCharterAbility {
 
                 double baseAngle = getPseudoRandomSlashAngle(player, slashIndex);
 
-                startSingleAnimatedSlash(player, targets, sword.clone(), slashIndex, baseAngle);
+                startSingleAnimatedSlash(player, sword.clone(), slashIndex, baseAngle);
             }, SLASH_START_DELAY + slashIndex * SLASH_STAGGER_TICKS);
         }
     }
@@ -396,7 +475,7 @@ public class AerialAceAbility implements CommandCharterAbility {
         return base + spread + randomOffset;
     }
 
-    private void startSingleAnimatedSlash(Player player, List<LivingEntity> targets, ItemStack sword, int slashIndex, double baseAngleDegrees) {
+    private void startSingleAnimatedSlash(Player player, ItemStack sword, int slashIndex, double baseAngleDegrees) {
         ArmorStand swordVisual = spawnSlashSword(player, sword);
 
         Set<UUID> hitThisSlash = new HashSet<>();
@@ -454,7 +533,7 @@ public class AerialAceAbility implements CommandCharterAbility {
                 spawnSlashArcParticles(player, center, baseAngleDegrees, progress, slashIndex);
 
                 if (ticks == SLASH_ANIMATION_TICKS / 2) {
-                    damageSlashTargets(player, targets, sword, center, hitThisSlash);
+                    damageSlashTargets(player, sword, center, hitThisSlash);
                 }
 
                 ticks++;
@@ -539,13 +618,22 @@ public class AerialAceAbility implements CommandCharterAbility {
         }
     }
 
-    private void damageSlashTargets(Player player, List<LivingEntity> targets, ItemStack sword, Location slashCenter, Set<UUID> hitThisSlash) {
+    private void damageSlashTargets(Player player, ItemStack sword, Location slashCenter, Set<UUID> hitThisSlash) {
         player.getWorld().playSound(slashCenter, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.95f, 1.1f);
         player.getWorld().playSound(slashCenter, Sound.ENTITY_PLAYER_ATTACK_CRIT, 0.45f, 1.35f);
         player.getWorld().playSound(slashCenter, Sound.ENTITY_BREEZE_WIND_BURST, 0.35f, 1.45f);
 
-        for (LivingEntity target : targets) {
-            if (target == null || !target.isValid() || target.isDead()) {
+        for (Entity entity : player.getWorld().getNearbyEntities(
+                slashCenter,
+                SLASH_RADIUS,
+                SLASH_RADIUS + SLASH_UPWARD_EXTENSION,
+                SLASH_RADIUS
+        )) {
+            if(!(entity instanceof LivingEntity target)){
+                continue;
+            }
+
+            if (!target.isValid() || target.isDead()) {
                 continue;
             }
 
@@ -557,7 +645,23 @@ public class AerialAceAbility implements CommandCharterAbility {
                 continue;
             }
 
-            if (target.getLocation().distanceSquared(slashCenter) > SLASH_RADIUS * SLASH_RADIUS) {
+            if (!hasLineOfSight(player, target)) {
+                continue;
+            }
+
+            Location targetLocation = target.getLocation();
+
+            double dx = targetLocation.getX() - slashCenter.getX();
+            double dy = targetLocation.getY() - slashCenter.getY();
+            double dz = targetLocation.getZ() - slashCenter.getZ();
+
+            double horizontalDistanceSquared = dx * dx + dz * dz;
+
+            if (horizontalDistanceSquared > SLASH_RADIUS * SLASH_RADIUS) {
+                continue;
+            }
+
+            if (dy > SLASH_RADIUS + SLASH_UPWARD_EXTENSION || dy < -SLASH_RADIUS) {
                 continue;
             }
 
@@ -664,5 +768,25 @@ public class AerialAceAbility implements CommandCharterAbility {
         if (fireAspect > 0) {
             target.setFireTicks(Math.max(target.getFireTicks(), fireAspect * 80));
         }
+    }
+
+    private boolean hasLineOfSight(Player player, LivingEntity target) {
+        Location start = player.getEyeLocation();
+        Location end = target.getEyeLocation();
+
+        Vector direction = end.toVector().subtract(start.toVector());
+        double distance = direction.length();
+
+        if (distance <= 0.001) {
+            return true;
+        }
+
+        return player.getWorld().rayTraceBlocks(
+                start,
+                direction.normalize(),
+                distance,
+                FluidCollisionMode.NEVER,
+                true
+        ) == null;
     }
 }
