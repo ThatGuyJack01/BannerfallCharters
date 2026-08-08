@@ -17,14 +17,14 @@ public final class CharterRegistry {
     }
 
     public void registerDefaults() {
-        register(new Charter(
-                "test",
-                "Test Charter",
-                List.of(
-                        new TestPoofAbility(),
-                        new TestWaterGlowPassive()
-                )
-        ));
+//        register(new Charter(
+//                "test",
+//                "Test Charter",
+//                List.of(
+//                        new TestPoofAbility(),
+//                        new TestWaterGlowPassive()
+//                )
+//        ));
         register(new Charter(
                 "photopho",
                 "Photopho",
