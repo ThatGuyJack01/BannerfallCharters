@@ -7,9 +7,13 @@ import com.thatguyjack.bannerfallCharters.core.CharterRegistry;
 import com.thatguyjack.bannerfallCharters.commands.CharterCommand;
 import com.thatguyjack.bannerfallCharters.core.CharterManager;
 import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannerfallFallDamageImmunityManager;
+import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannersbaneMessageRewriter;
+import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannersbaneThemeManager;
 import com.thatguyjack.bannerfallCharters.listeners.AbilityCommandListener;
 import com.thatguyjack.bannerfallCharters.listeners.BannerfallAbilityBlockerListener;
 import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannerfallAbilityCleaner;
+import com.thatguyjack.bannerfallCharters.listeners.BannersbaneInventorySkinListener;
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -28,6 +32,9 @@ public final class BannerfallCharters extends JavaPlugin {
     private BannerfallAbilityCleaner bannerfallAbilityCleaner;
 
     private BannerfallFallDamageImmunityManager bannerfallFallDamageImmunityManager;
+
+    private BannersbaneThemeManager bannersbaneThemeManager;
+    private BannersbaneMessageRewriter bannersbaneMessageRewriter;
 
     @Override
     public void onEnable() {
@@ -52,6 +59,23 @@ public final class BannerfallCharters extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new BannerfallAbilityBlockerListener(this), this);
         getServer().getPluginManager().registerEvents(new AbilityCommandListener(this), this);
+        getServer().getPluginManager().registerEvents(new BannersbaneInventorySkinListener(this), this);
+
+        bannersbaneThemeManager = new BannersbaneThemeManager(this);
+        bannersbaneThemeManager.apply();
+
+        Plugin protocolLib = Bukkit.getPluginManager().getPlugin("ProtocolLib");
+
+        if (protocolLib != null && protocolLib.isEnabled()) {
+            bannersbaneMessageRewriter = new BannersbaneMessageRewriter(this);
+            bannersbaneMessageRewriter.register();
+        } else {
+            getLogger().warning("ProtocolLib is not enabled. Bannersbane packet text rewriting is disabled.");
+        }
+
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            bannersbaneThemeManager.apply();
+        }, 40L);
 
         CharterCommand charterCommand = new CharterCommand(this);
         PluginCommand pluginCommand = getCommand("charter");
