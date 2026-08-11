@@ -28,7 +28,7 @@ public final class CharterAbilityManager {
 
         Charter charter = plugin.charterRegistry().getCharter(charterId).orElse(null);
         if(charter == null) {
-            player.sendMessage(ChatColor.RED + "Your charter is not registered.");
+            player.sendMessage(ChatColor.RED + "Your bannersbane power is not registered.");
             return;
         }
 
@@ -50,7 +50,7 @@ public final class CharterAbilityManager {
         }
 
         if (ability == null) {
-            player.sendMessage(ChatColor.RED + "Your charter does not have an ability in that slot.");
+            player.sendMessage(ChatColor.RED + "Your bannersbane character does not have an ability in that slot.");
             return;
         }
 

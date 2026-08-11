@@ -60,8 +60,8 @@ public class BannersbaneInventorySkinListener implements Listener {
     private void skinChooseKingdomInventory(Inventory inventory) {
         skinGenericBannerfallInventory(inventory);
 
-        inventory.setItem(2, createDawnItem());
-        inventory.setItem(6, createDuskItem());
+        inventory.setItem(2, createDuskItem());
+        inventory.setItem(6, createDawnItem());
     }
 
     private ItemStack createDawnItem() {

@@ -16,14 +16,13 @@ public final class BannersbaneTextSkin {
 
         String replaced = text;
 
-        // Do colors first so JSON color values become valid Minecraft colors
-        // before we replace plain words like "Blue" / "Red".
         replaced = replaceJsonColorNames(replaced);
         replaced = replaceLegacyColorCodes(replaced);
         replaced = replaceAmpersandColorCodes(replaced);
 
         replaced = replaceBannerfallName(replaced);
         replaced = replaceKingdomNames(replaced);
+        replaced = replaceKingdomPhrases(replaced);
 
         return replaced;
     }
@@ -38,59 +37,70 @@ public final class BannersbaneTextSkin {
     private static String replaceKingdomNames(String text) {
         String replaced = text;
 
-        replaced = replaceIgnoreCase(replaced, "Blue Kingdom", DAWN);
-        replaced = replaceIgnoreCase(replaced, "Red Kingdom", DUSK);
+        replaced = replaceIgnoreCase(replaced, "Blue Kingdom", DUSK);
+        replaced = replaceIgnoreCase(replaced, "Red Kingdom", DAWN);
 
-        replaced = replaceIgnoreCase(replaced, "Blue kingdom", DAWN);
-        replaced = replaceIgnoreCase(replaced, "Red kingdom", DUSK);
+        replaced = replaceIgnoreCase(replaced, "Blue kingdom", DUSK);
+        replaced = replaceIgnoreCase(replaced, "Red kingdom", DAWN);
 
-        /*
-         * Replace standalone Blue/Red, but DO NOT touch JSON color fields like:
-         * "color":"blue"
-         * "color":"red"
-         *
-         * Otherwise you get invalid JSON like:
-         * "color":"Dawn"
-         * "color":"Dusk"
-         */
-        replaced = replaceStandaloneKingdomWord(replaced, "Blue", DAWN);
-        replaced = replaceStandaloneKingdomWord(replaced, "Red", DUSK);
-        replaced = replaceStandaloneKingdomWord(replaced, "blue", "dawn");
-        replaced = replaceStandaloneKingdomWord(replaced, "red", "dusk");
-        replaced = replaceStandaloneKingdomWord(replaced, "BLUE", "DAWN");
-        replaced = replaceStandaloneKingdomWord(replaced, "RED", "DUSK");
+        replaced = replaceStandaloneKingdomWord(replaced, "Blue", DUSK);
+        replaced = replaceStandaloneKingdomWord(replaced, "Red", DAWN);
+        replaced = replaceStandaloneKingdomWord(replaced, "blue", "dusk");
+        replaced = replaceStandaloneKingdomWord(replaced, "red", "dawn");
+        replaced = replaceStandaloneKingdomWord(replaced, "BLUE", "DUSK");
+        replaced = replaceStandaloneKingdomWord(replaced, "RED", "DAWN");
+
+        return replaced;
+    }
+
+    private static String replaceKingdomPhrases(String text) {
+        String replaced = text;
+
+        replaced = replaceIgnoreCase(replaced, "Entering the Dawn", "Entering the Kingdom of Dawn");
+        replaced = replaceIgnoreCase(replaced, "Entering the Dusk", "Entering the Kingdom of Dusk");
+
+        replaced = replaceIgnoreCase(replaced, "entering the Dawn", "entering the Kingdom of Dawn");
+        replaced = replaceIgnoreCase(replaced, "entering the Dusk", "entering the Kingdom of Dusk");
+
+        replaced = replaceIgnoreCase(replaced, "Entering the §eDawn", "Entering the §eKingdom of Dawn");
+        replaced = replaceIgnoreCase(replaced, "Entering the §9Dusk", "Entering the §9Kingdom of Dusk");
+
+        replaced = replaceIgnoreCase(replaced, "entering the §eDawn", "entering the §eKingdom of Dawn");
+        replaced = replaceIgnoreCase(replaced, "entering the §9Dusk", "entering the §9Kingdom of Dusk");
+
+        replaced = replaceIgnoreCase(replaced, "Entering the \\u00a7eDawn", "Entering the \\u00a7eKingdom of Dawn");
+        replaced = replaceIgnoreCase(replaced, "Entering the \\u00a79Dusk", "Entering the \\u00a79Kingdom of Dusk");
+
+        replaced = replaceIgnoreCase(replaced, "entering the \\u00a7eDawn", "entering the \\u00a7eKingdom of Dawn");
+        replaced = replaceIgnoreCase(replaced, "entering the \\u00a79Dusk", "entering the \\u00a79Kingdom of Dusk");
 
         return replaced;
     }
 
     private static String replaceLegacyColorCodes(String text) {
         return text
-                // Normal section sign codes.
-                .replace("§b", "§e") // aqua -> yellow
-                .replace("§c", "§9") // red -> blue
+                .replace("§b", "§9")
+                .replace("§c", "§e")
 
-                // JSON-escaped section sign codes.
-                .replace("\\u00a7b", "\\u00a7e")
-                .replace("\\u00a7c", "\\u00a79");
+                .replace("\\u00a7b", "\\u00a79")
+                .replace("\\u00a7c", "\\u00a7e");
     }
 
     private static String replaceAmpersandColorCodes(String text) {
         return text
-                .replace("&b", "&e") // aqua -> yellow
-                .replace("&c", "&9"); // red -> blue
+                .replace("&b", "&9")
+                .replace("&c", "&e");
     }
 
     private static String replaceJsonColorNames(String text) {
         return text
-                // Blue Kingdom / Dawn colors.
-                .replace("\"color\":\"aqua\"", "\"color\":\"yellow\"")
-                .replace("\"color\":\"dark_aqua\"", "\"color\":\"yellow\"")
-                .replace("\"color\":\"blue\"", "\"color\":\"yellow\"")
-                .replace("\"color\":\"dark_blue\"", "\"color\":\"yellow\"")
+                .replace("\"color\":\"aqua\"", "\"color\":\"blue\"")
+                .replace("\"color\":\"dark_aqua\"", "\"color\":\"blue\"")
+                .replace("\"color\":\"blue\"", "\"color\":\"blue\"")
+                .replace("\"color\":\"dark_blue\"", "\"color\":\"blue\"")
 
-                // Red Kingdom / Dusk colors.
-                .replace("\"color\":\"red\"", "\"color\":\"blue\"")
-                .replace("\"color\":\"dark_red\"", "\"color\":\"blue\"");
+                .replace("\"color\":\"red\"", "\"color\":\"yellow\"")
+                .replace("\"color\":\"dark_red\"", "\"color\":\"yellow\"");
     }
 
     private static String replaceIgnoreCase(String text, String target, String replacement) {
@@ -100,17 +110,6 @@ public final class BannersbaneTextSkin {
     }
 
     private static String replaceStandaloneKingdomWord(String text, String target, String replacement) {
-        /*
-         * This negative lookbehind prevents replacing JSON color values:
-         *
-         * "color":"blue"
-         *          ^ do not replace this
-         *
-         * But it still replaces:
-         *
-         * "text":"1 Blue"
-         * Randomly assigned players: 1 Blue, 0 Red.
-         */
         return Pattern.compile("(?<!\"color\":\")\\b" + Pattern.quote(target) + "\\b")
                 .matcher(text)
                 .replaceAll(replacement);

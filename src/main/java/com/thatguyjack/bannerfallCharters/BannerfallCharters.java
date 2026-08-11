@@ -9,11 +9,9 @@ import com.thatguyjack.bannerfallCharters.core.CharterManager;
 import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannerfallFallDamageImmunityManager;
 import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannersbaneMessageRewriter;
 import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannersbaneThemeManager;
-import com.thatguyjack.bannerfallCharters.listeners.AbilityCommandListener;
-import com.thatguyjack.bannerfallCharters.listeners.BannerfallAbilityBlockerListener;
+import com.thatguyjack.bannerfallCharters.listeners.*;
 import com.thatguyjack.bannerfallCharters.integrations.bannerfall.BannerfallAbilityCleaner;
 import com.thatguyjack.bannerfallCharters.listeners.BannersbaneInventorySkinListener;
-import com.thatguyjack.bannerfallCharters.listeners.ThatGuyJackStealthListener;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
@@ -66,7 +64,7 @@ public final class BannerfallCharters extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ThatGuyJackStealthListener(this), this);
 
         bannersbaneThemeManager = new BannersbaneThemeManager(this);
-        bannersbaneThemeManager.apply();
+        bannersbaneThemeManager.startPatchTasks();
 
         Plugin protocolLib = Bukkit.getPluginManager().getPlugin("ProtocolLib");
 
@@ -76,10 +74,6 @@ public final class BannerfallCharters extends JavaPlugin {
         } else {
             getLogger().warning("ProtocolLib is not enabled. Bannersbane packet text rewriting is disabled.");
         }
-
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            bannersbaneThemeManager.apply();
-        }, 40L);
 
         CharterCommand charterCommand = new CharterCommand(this);
         PluginCommand pluginCommand = getCommand("bannersbane");
@@ -138,5 +132,9 @@ public final class BannerfallCharters extends JavaPlugin {
 
     public boolean autoAssignHeadcrabDebugPower() {
         return autoAssignHeadcrabDebugPower;
+    }
+
+    public BannersbaneThemeManager bannersbaneThemeManager() {
+        return bannersbaneThemeManager;
     }
 }
