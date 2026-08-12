@@ -7,6 +7,7 @@ import com.thatguyjack.bannerfallCharters.core.Charter;
 import com.thatguyjack.bannerfallCharters.core.CharterAbility;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -27,7 +28,7 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
-        if (!sender.hasPermission("bannerfallcharters.admin")) {
+        if (!sender.hasPermission("bannersbane.admin") && !sender.hasPermission("bannerfallcharters.admin")) {
             sender.sendMessage(ChatColor.RED + "You do not have permission to run this command.");
             return true;
         }
@@ -48,7 +49,7 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
 
     private void sendHelp(CommandSender sender, String label) {
         sender.sendMessage(ChatColor.GOLD + "Bannersbane Commands:");
-        sender.sendMessage(ChatColor.YELLOW + "/" + label + " set <player> <power>");
+        sender.sendMessage(ChatColor.YELLOW + "/" + label + " set <player> <power> [sendMessage]");
         sender.sendMessage(ChatColor.YELLOW + "/" + label + " clear <player>");
         sender.sendMessage(ChatColor.YELLOW + "/" + label + " list");
         sender.sendMessage(ChatColor.YELLOW + "/" + label + " list all");
@@ -86,10 +87,23 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
                         }
                     }
 
-                    onlineTarget.setGameMode(org.bukkit.GameMode.SPECTATOR);
+                    onlineTarget.setGameMode(GameMode.CREATIVE);
                 }
 
-                sender.sendMessage(ChatColor.GREEN + "Set " + targetName + "'s Bannersbane power to " + charterID);
+                boolean sendCustomMessage = args.length >= 4 && Boolean.parseBoolean(args[3]);
+
+                boolean customMessageSent = false;
+
+                if (sendCustomMessage) {
+                    customMessageSent = sendCustomSetMessage(sender, onlineTarget, targetName, charterID);
+                }
+
+                if (sendCustomMessage && customMessageSent) {
+                    sender.sendMessage(ChatColor.GREEN + "Set " + targetName + "'s Bannersbane power to "
+                            + charterID + " and sent their custom assignment message.");
+                } else {
+                    sender.sendMessage(ChatColor.GREEN + "Set " + targetName + "'s Bannersbane power to " + charterID);
+                }
             }
 
             case "clear" -> {
@@ -193,6 +207,28 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private boolean sendCustomSetMessage(CommandSender sender, Player onlineTarget, String targetName, String charterID) {
+        Optional<String> customMessage = plugin.charterRegistry().getCustomSetMessage(charterID);
+
+        if (customMessage.isEmpty()) {
+            sender.sendMessage(ChatColor.RED + "Set " + targetName + "'s Bannersbane power to "
+                    + charterID + ", but no custom assignment message exists for that power.");
+            return false;
+        }
+
+        if (onlineTarget == null || !onlineTarget.isOnline()) {
+            sender.sendMessage(ChatColor.RED + "Set " + targetName + "'s Bannersbane power to "
+                    + charterID + ", but they are not online, so the custom message could not be sent.");
+            return false;
+        }
+
+        String message = ChatColor.translateAlternateColorCodes('&', customMessage.get());
+
+        onlineTarget.sendMessage(message);
+
+        return true;
+    }
+
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String @NotNull [] args) {
         if (!sender.hasPermission("bannersbane.admin") && !sender.hasPermission("bannerfallcharters.admin")) {
@@ -231,6 +267,9 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
                     .map(Charter::id)
                     .filter(id -> !id.equalsIgnoreCase("thatguyjack"))
                     .toArray(String[]::new));
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("set")) {
+            return startsWith(args[3], "true", "false");
         }
 
         return List.of();

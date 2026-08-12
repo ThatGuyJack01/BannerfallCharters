@@ -14,6 +14,7 @@ import java.util.*;
 public final class CharterRegistry {
     private final BannerfallCharters plugin;
     private final Map<String, Charter> charters = new HashMap<>();
+    private final Map<String, String> customSetMessages = new HashMap<>();
 
     public CharterRegistry(BannerfallCharters plugin) {
         this.plugin = plugin;
@@ -66,6 +67,12 @@ public final class CharterRegistry {
 //                        unicornsBlessingAbility.createCancelAbility()
 //                )
 //        ));
+
+
+        registerCustomSetMessage(
+                "bulldozerplays",
+                "&r&9✦ &fThe stars twinkle above you. &7Something unseen stirs within you, but its meaning remains unclear."
+        );
     }
 
     public void register(Charter charter) {
@@ -82,5 +89,17 @@ public final class CharterRegistry {
 
     public Collection<Charter> getAllCharters() {
         return charters.values();
+    }
+
+    public void registerCustomSetMessage(String charterId, String message) {
+        customSetMessages.put(charterId.toLowerCase(Locale.ROOT), message);
+    }
+
+    public Optional<String> getCustomSetMessage(String charterId) {
+        return Optional.ofNullable(customSetMessages.get(charterId.toLowerCase(Locale.ROOT)));
+    }
+
+    public boolean hasCustomSetMessage(String charterId) {
+        return customSetMessages.containsKey(charterId.toLowerCase(Locale.ROOT));
     }
 }
