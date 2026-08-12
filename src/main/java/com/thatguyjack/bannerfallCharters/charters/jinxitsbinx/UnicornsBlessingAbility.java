@@ -335,9 +335,12 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
 
     private void endChannel(UUID casterId, boolean showEndMessage) {
         activeChannels.remove(casterId);
-        cooldowns.put(casterId, System.currentTimeMillis() + COOLDOWN * 1000L);
-
         Player caster = Bukkit.getPlayer(casterId);
+
+        if (caster == null || caster.getGameMode() != GameMode.CREATIVE) {
+            cooldowns.put(casterId, System.currentTimeMillis() + COOLDOWN * 1000L);
+        }
+
 
         if (caster != null && caster.isOnline()) {
             if (showEndMessage) {
@@ -358,10 +361,16 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
         }
 
         channel.cancel();
-        cooldowns.put(casterId, System.currentTimeMillis() + COOLDOWN * 1000L);
+        if (caster.getGameMode() != GameMode.CREATIVE) {
+            cooldowns.put(casterId, System.currentTimeMillis() + COOLDOWN * 1000L);
+        }
 
         caster.sendMessage(ChatColor.LIGHT_PURPLE + "You cancel Unicorn's Blessing.");
         caster.getWorld().playSound(caster.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.55f, 1.35f);
+    }
+
+    public void clearCooldown(UUID playerId) {
+        cooldowns.remove(playerId);
     }
 
     private class UnicornsBlessingCancelAbility implements CommandCharterAbility {
