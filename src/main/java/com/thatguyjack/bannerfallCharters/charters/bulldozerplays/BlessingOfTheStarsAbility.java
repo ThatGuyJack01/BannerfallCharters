@@ -19,11 +19,15 @@ public class BlessingOfTheStarsAbility implements CommandCharterAbility {
 
     private final BannerfallCharters plugin;
 
-    private static final int NIGHT_DURATION_TICKS = 20 * 90;
+    private static final int NIGHT_DURATION_TICKS = 20 * 120;
     private static final int DAY_DURATION_TICKS = 20 * 120;
 
-    private final Map<UUID, Long> availableAtPhase = new HashMap<>();
+    private static final int NIGHT_COOLDOWN_SECONDS = 5 * 60;
+
+    private final Map<UUID, Long> nightCooldowns = new HashMap<>();
+    private final Map<UUID, Long> usedDayBlessingOnDay = new HashMap<>();
     private final Map<UUID, BukkitTask> passiveParticleTasks = new HashMap<>();
+    private final Map<UUID, BukkitTask> daySunsetCleanupTasks = new HashMap<>();
 
     public BlessingOfTheStarsAbility(BannerfallCharters plugin) {
         this.plugin = plugin;
@@ -79,32 +83,71 @@ public class BlessingOfTheStarsAbility implements CommandCharterAbility {
         World world = player.getWorld();
 
         boolean daytime = world.isDayTime();
-        long currentPhase = getCurrentPhase(world, daytime);
-
         UUID uuid = player.getUniqueId();
         boolean ignoresCooldown = player.getGameMode() == GameMode.CREATIVE;
 
-        Long availablePhase = availableAtPhase.get(uuid);
+        if (daytime) {
+            long minecraftDay = getMinecraftDay(world);
+            Long usedDay = usedDayBlessingOnDay.get(uuid);
 
-        if(!ignoresCooldown && availablePhase != null && currentPhase < availablePhase) {
-            player.sendMessage(ChatColor.RED + "Blessing of the Stars has not yet recharged.");
+            if (!ignoresCooldown && usedDay != null && usedDay == minecraftDay) {
+                player.sendMessage(ChatColor.RED + "Blessing of the Stars has already answered you today. Wait until nightfall.");
+                return false;
+            }
+
+            activateDayBlessing(player);
+
+            if (!ignoresCooldown) {
+                usedDayBlessingOnDay.put(uuid, minecraftDay);
+            }
+
+            return true;
+        }
+
+        long remainingMillis = getNightCooldownRemainingMillis(uuid);
+
+        if (!ignoresCooldown && remainingMillis > 0) {
+            sendNightCooldownMessage(player, remainingMillis);
             return false;
         }
 
-        if(daytime) {
-            activateDayBlessing(player);
-            if(!ignoresCooldown) availableAtPhase.put(uuid, currentPhase + 2);
-        } else {
-            activateNightBlessing(player);
-            if(!ignoresCooldown) availableAtPhase.put(uuid, currentPhase + 1);
+        activateNightBlessing(player);
+
+        if (!ignoresCooldown) {
+            nightCooldowns.put(uuid, System.currentTimeMillis() + NIGHT_COOLDOWN_SECONDS * 1000L);
         }
 
         return true;
     }
 
-    private long getCurrentPhase(World world, boolean daytime) {
-        long minecraftDay = world.getFullTime() / 24000L;
-        return minecraftDay * 2L + (daytime ? 0L : 1L);
+    private long getMinecraftDay(World world) {
+        return world.getFullTime() / 24000L;
+    }
+
+    private long getNightCooldownRemainingMillis(UUID uuid) {
+        Long cooldownEnd = nightCooldowns.get(uuid);
+
+        if (cooldownEnd == null) {
+            return 0L;
+        }
+
+        long remaining = cooldownEnd - System.currentTimeMillis();
+
+        if (remaining <= 0) {
+            nightCooldowns.remove(uuid);
+            return 0L;
+        }
+
+        return remaining;
+    }
+
+    private void sendNightCooldownMessage(Player player, long remainingMillis) {
+        long remainingSeconds = (remainingMillis + 999L) / 1000L;
+        long minutes = remainingSeconds / 60L;
+        long seconds = remainingSeconds % 60L;
+
+        player.sendMessage(ChatColor.RED + "Blessing of the Stars will return in "
+                + minutes + "m " + seconds + "s.");
     }
 
     private void activateNightBlessing(Player player) {
@@ -171,6 +214,73 @@ public class BlessingOfTheStarsAbility implements CommandCharterAbility {
 
         playDayActivation(player);
         startPassiveParticles(player, false, DAY_DURATION_TICKS);
+        startDaySunsetCleanup(player);
+    }
+
+    private void startDaySunsetCleanup(Player player) {
+        UUID uuid = player.getUniqueId();
+
+        BukkitTask existingTask = daySunsetCleanupTasks.remove(uuid);
+
+        if (existingTask != null) {
+            existingTask.cancel();
+        }
+
+        BukkitTask task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!player.isOnline() || player.isDead()) {
+                    daySunsetCleanupTasks.remove(uuid);
+                    cancel();
+                    return;
+                }
+
+                if (!player.getWorld().isDayTime()) {
+                    player.removePotionEffect(PotionEffectType.WEAKNESS);
+                    player.removePotionEffect(PotionEffectType.SPEED);
+                    player.removePotionEffect(PotionEffectType.SLOW_FALLING);
+
+                    player.sendMessage(ChatColor.GRAY + "As the sun sets, the daytime blessing fades.");
+
+                    World world = player.getWorld();
+                    Location location = player.getLocation().add(0, 1.0, 0);
+
+                    world.spawnParticle(
+                            Particle.SMOKE,
+                            location,
+                            10,
+                            0.45,
+                            0.55,
+                            0.45,
+                            0.02
+                    );
+
+                    world.playSound(
+                            location,
+                            Sound.BLOCK_FIRE_EXTINGUISH,
+                            0.45f,
+                            1.25f
+                    );
+
+                    BukkitTask passiveTask = passiveParticleTasks.remove(uuid);
+                    if (passiveTask != null) {
+                        passiveTask.cancel();
+                    }
+
+                    daySunsetCleanupTasks.remove(uuid);
+                    cancel();
+                    return;
+                }
+
+                if (!player.hasPotionEffect(PotionEffectType.WEAKNESS)
+                        && !player.hasPotionEffect(PotionEffectType.SPEED)) {
+                    daySunsetCleanupTasks.remove(uuid);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
+
+        daySunsetCleanupTasks.put(uuid, task);
     }
 
     private void playNightActivation(Player player) {
@@ -949,6 +1059,12 @@ public class BlessingOfTheStarsAbility implements CommandCharterAbility {
     }
 
     public void clearCooldown(UUID uuid) {
-        availableAtPhase.remove(uuid);
+        nightCooldowns.remove(uuid);
+        usedDayBlessingOnDay.remove(uuid);
+
+        BukkitTask cleanupTask = daySunsetCleanupTasks.remove(uuid);
+        if (cleanupTask != null) {
+            cleanupTask.cancel();
+        }
     }
 }
