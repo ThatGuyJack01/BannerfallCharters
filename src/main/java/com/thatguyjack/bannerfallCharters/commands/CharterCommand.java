@@ -1,7 +1,10 @@
 package com.thatguyjack.bannerfallCharters.commands;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
+import com.thatguyjack.bannerfallCharters.charters.bulldozerplays.BlessingOfTheStarsAbility;
+import com.thatguyjack.bannerfallCharters.charters.jinxitsbinx.UnicornsBlessingAbility;
 import com.thatguyjack.bannerfallCharters.core.Charter;
+import com.thatguyjack.bannerfallCharters.core.CharterAbility;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -12,9 +15,8 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+
+import java.util.*;
 
 public final class CharterCommand implements CommandExecutor, TabCompleter {
     private final BannerfallCharters plugin;
@@ -37,6 +39,7 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "set", "clear", "list" -> handleCharter(sender, args);
+            case "clearcd" -> clearCooldowns(sender, args);
             default -> sender.sendMessage(ChatColor.RED + "Unknown command. Try /bannersbane <set|clear|list>");
         }
 
@@ -150,13 +153,53 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void clearCooldowns(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /bannersbane clearcooldowns <player>");
+            return;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
+        UUID targetId = target.getUniqueId();
+
+        plugin.charterAbilityManager().clearCooldowns(targetId);
+        clearSpecialAbilityCooldowns(targetId);
+
+        String targetName = target.getName() != null ? target.getName() : args[1];
+
+        sender.sendMessage(ChatColor.GREEN + "Cleared Bannersbane cooldowns for " + targetName + ".");
+    }
+
+    private void clearSpecialAbilityCooldowns(UUID playerId) {
+        Optional<String> charterId = plugin.charterManager().getCharter(playerId);
+
+        if (charterId.isEmpty()) {
+            return;
+        }
+
+        Charter charter = plugin.charterRegistry().getCharter(charterId.get()).orElse(null);
+
+        if (charter == null) {
+            return;
+        }
+
+        for (CharterAbility ability : charter.abilities()) {
+            if (ability instanceof UnicornsBlessingAbility unicornsBlessingAbility) {
+                unicornsBlessingAbility.clearCooldown(playerId);
+            }
+            if (ability instanceof BlessingOfTheStarsAbility blessingOfTheStarsAbility) {
+                blessingOfTheStarsAbility.clearCooldown(playerId);
+            }
+        }
+    }
+
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String @NotNull [] args) {
         if (!sender.hasPermission("bannersbane.admin") && !sender.hasPermission("bannerfallcharters.admin")) {
             return List.of();
         }
         if(args.length == 1) {
-            return startsWith(args[0], "set", "clear", "list", "help");
+            return startsWith(args[0], "set", "clear", "list", "help", "clearcd");
         }
         if (args.length == 2) {
             return switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -177,6 +220,8 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
 
                     yield startsWith(args[1], names.toArray(String[]::new));
                 }
+
+                case "clearcd" -> onlinePlayerNames(args[1]);
 
                 default -> List.of();
             };

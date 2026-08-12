@@ -78,4 +78,7 @@ public final class CharterAbilityManager {
         }
     }
 
+    public void clearCooldowns(UUID playerId) {
+        cooldowns.remove(playerId);
+    }
 }
