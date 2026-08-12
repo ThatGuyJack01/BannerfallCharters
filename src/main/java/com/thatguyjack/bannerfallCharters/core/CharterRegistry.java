@@ -1,6 +1,7 @@
 package com.thatguyjack.bannerfallCharters.core;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
+import com.thatguyjack.bannerfallCharters.charters.bulldozerplays.BlessingOfTheStarsAbility;
 import com.thatguyjack.bannerfallCharters.charters.jinxitsbinx.UnicornsBlessingAbility;
 import com.thatguyjack.bannerfallCharters.charters.loserboy.AerialAceAbility;
 import com.thatguyjack.bannerfallCharters.charters.photopho.CanaryCollisionAbility;
@@ -17,7 +18,7 @@ public final class CharterRegistry {
     public CharterRegistry(BannerfallCharters plugin) {
         this.plugin = plugin;
     }
-    
+
     public void registerDefaults() {
         UnicornsBlessingAbility unicornsBlessingAbility = new UnicornsBlessingAbility(plugin);
 
@@ -51,13 +52,20 @@ public final class CharterRegistry {
                 )
         ));
         register(new Charter(
-                "jinxitsbinx",
-                "Jinxitsbinx",
+                "bulldozerplays",
+                "Bulldozerplays",
                 List.of(
-                        unicornsBlessingAbility,
-                        unicornsBlessingAbility.createCancelAbility()
+                    new BlessingOfTheStarsAbility(plugin)
                 )
         ));
+//        register(new Charter(
+//                "jinxitsbinx",
+//                "Jinxitsbinx",
+//                List.of(
+//                        unicornsBlessingAbility,
+//                        unicornsBlessingAbility.createCancelAbility()
+//                )
+//        ));
     }
 
     public void register(Charter charter) {
