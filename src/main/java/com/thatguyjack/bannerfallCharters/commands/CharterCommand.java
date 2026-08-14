@@ -211,8 +211,6 @@ public final class CharterCommand implements CommandExecutor, TabCompleter {
         Optional<String> customMessage = plugin.charterRegistry().getCustomSetMessage(charterID);
 
         if (customMessage.isEmpty()) {
-            sender.sendMessage(ChatColor.RED + "Set " + targetName + "'s Bannersbane power to "
-                    + charterID + ", but no custom assignment message exists for that power.");
             return false;
         }
 
