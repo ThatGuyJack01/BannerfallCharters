@@ -3,8 +3,21 @@ package com.thatguyjack.bannerfallCharters.charters.jinxitsbinx;
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
 import com.thatguyjack.bannerfallCharters.core.AbilitySlot;
 import com.thatguyjack.bannerfallCharters.core.CommandCharterAbility;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Color;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -13,11 +26,10 @@ import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-public class UnicornsBlessingAbility implements CommandCharterAbility {
+public class UnicornsBlessingAbility implements CommandCharterAbility, Listener {
     private final BannerfallCharters plugin;
 
     private static final double RADIUS = 6.0;
@@ -25,21 +37,37 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
     private static final double ENEMY_DAMAGE_PER_PULSE = 2.0;
 
     private static final int MAX_CHANNEL_SECONDS = 12;
+    private static final int MAX_CHANNEL_TICKS = MAX_CHANNEL_SECONDS * 20;
+    private static final int PULSE_INTERVAL_TICKS = 40;
     private static final int COOLDOWN = 8 * 60;
 
-    private static final Particle.DustOptions DAWN_DUST = new Particle.DustOptions(
-            Color.fromRGB(255, 235, 145), 1.25f
-    );
+    private static final boolean REQUIRES_CONCENTRATION = true;
+    private static final boolean CASTER_TOTEM_WHILE_CHANNELING = false;
 
-    private static final Particle.DustOptions BLESSING_DUST = new Particle.DustOptions(
-            Color.fromRGB(255, 190, 240), 1.1f
-    );
+    private static final double CONCENTRATION_MOVE_EPSILON = 0.0001;
+    private static final double ENEMY_KNOCKBACK_HORIZONTAL = 0.035;
+    private static final double ENEMY_KNOCKBACK_VERTICAL = 0.01;
+
+    private static final double TOTEM_SAVE_HEALTH = 6.0;
+    private static final int TOTEM_REGEN_TICKS = 20 * 4;
+    private static final int TOTEM_ABSORPTION_TICKS = 20 * 5;
+    private static final int TOTEM_RESISTANCE_TICKS = 20 * 3;
+
+    private static final Color[] UNICORN_COLORS = new Color[] {
+            Color.fromRGB(255, 120, 210),
+            Color.fromRGB(255, 180, 235),
+            Color.fromRGB(255, 245, 155),
+            Color.fromRGB(165, 255, 220),
+            Color.fromRGB(135, 220, 255),
+            Color.fromRGB(190, 155, 255)
+    };
 
     private final Map<UUID, BukkitRunnable> activeChannels = new HashMap<>();
     private final Map<UUID, Long> cooldowns = new HashMap<>();
 
     public UnicornsBlessingAbility(BannerfallCharters plugin) {
         this.plugin = plugin;
+        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     @Override
@@ -49,7 +77,6 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
 
     @Override
     public int cooldownSeconds() {
-        // cooldown managed internally so it is started when channel ends.
         return 0;
     }
 
@@ -60,26 +87,31 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
 
     @Override
     public String displayName() {
-        return "Unicorns Blessing";
+        return "Unicorn's Blessing";
     }
 
     @Override
     public boolean activate(Player player) {
         UUID playerId = player.getUniqueId();
 
-        if(activeChannels.containsKey(playerId)) {
+        if (activeChannels.containsKey(playerId)) {
             player.sendMessage(ChatColor.LIGHT_PURPLE + "Unicorn's Blessing is already active.");
             return false;
         }
 
         long remainingMillis = getRemainingCooldownMillis(playerId);
 
-        if (remainingMillis > 0) {
+        if (remainingMillis > 0 && player.getGameMode() != GameMode.CREATIVE) {
             long remainingSeconds = (remainingMillis + 999) / 1000;
             long minutes = remainingSeconds / 60;
             long seconds = remainingSeconds % 60;
 
-            player.sendMessage(ChatColor.RED + "Unicorn's blessing is on cooldown for " + minutes + "m " + seconds + "s.");
+            player.sendMessage(ChatColor.RED + "Unicorn's Blessing is on cooldown for " + minutes + "m " + seconds + "s.");
+            return false;
+        }
+
+        if (getKingdomTeam(player) == null) {
+            player.sendMessage(ChatColor.RED + "You must be in a kingdom to use Unicorn's Blessing.");
             return false;
         }
 
@@ -97,24 +129,40 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
         caster.sendMessage(ChatColor.LIGHT_PURPLE + "You begin channeling "
                 + ChatColor.WHITE + "Unicorn's Blessing" + ChatColor.LIGHT_PURPLE + ".");
 
+        if (REQUIRES_CONCENTRATION) {
+            caster.sendMessage(ChatColor.GRAY + "Concentrate. Your movement is locked while the blessing is active.");
+        }
+
         caster.getWorld().playSound(caster.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.2f, 1.35f);
         caster.getWorld().playSound(caster.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.7f, 1.6f);
 
         BukkitRunnable channel = new BukkitRunnable() {
-            private int seconds = 0;
+            private int ticks = 0;
 
             @Override
             public void run() {
-                if(!caster.isOnline() || caster.isDead()) {
+                if (!caster.isOnline() || caster.isDead()) {
                     endChannel(casterId, false);
                     cancel();
                     return;
                 }
 
-                pulse(caster);
-                seconds++;
+                if (getKingdomTeam(caster) == null) {
+                    caster.sendMessage(ChatColor.RED + "Unicorn's Blessing faded because you are not in a kingdom.");
+                    endChannel(casterId, false);
+                    cancel();
+                    return;
+                }
 
-                if(seconds >= MAX_CHANNEL_SECONDS) {
+                renderChannelVisuals(caster, ticks);
+
+                if (ticks % PULSE_INTERVAL_TICKS == 0) {
+                    pulse(caster);
+                }
+
+                ticks++;
+
+                if (ticks >= MAX_CHANNEL_TICKS) {
                     endChannel(casterId, true);
                     cancel();
                 }
@@ -122,15 +170,12 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
         };
 
         activeChannels.put(casterId, channel);
-        channel.runTaskTimer(plugin, 0L, 20L);
+        channel.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void pulse(Player caster) {
         Location center = caster.getLocation();
         World world = caster.getWorld();
-
-        spawnRangeRing(center);
-        spawnPulseBurst(center);
 
         Team casterTeam = getKingdomTeam(caster);
 
@@ -140,12 +185,14 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
             return;
         }
 
-        for(Player target : Bukkit.getOnlinePlayers()) {
+        spawnPulseImpact(center);
+
+        for (Player target : Bukkit.getOnlinePlayers()) {
             if (!target.getWorld().equals(world)) {
                 continue;
             }
 
-            if(target.getLocation().distanceSquared(center) > RADIUS * RADIUS) {
+            if (target.getLocation().distanceSquared(center) > RADIUS * RADIUS) {
                 continue;
             }
 
@@ -155,14 +202,15 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
                 continue;
             }
 
-            if(targetTeam.equals(casterTeam)) {
+            if (targetTeam.equals(casterTeam)) {
                 blessAlly(target);
             } else {
                 harmEnemy(caster, target);
             }
         }
 
-        world.playSound(center, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 1.8f);
+        world.playSound(center, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.7f, 1.65f);
+        world.playSound(center, Sound.BLOCK_AMETHYST_CLUSTER_STEP, 0.45f, 1.8f);
     }
 
     private void blessAlly(Player ally) {
@@ -171,16 +219,19 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
 
         ally.addPotionEffect(new PotionEffect(
                 PotionEffectType.REGENERATION,
-                45,
+                55,
                 0,
                 true,
                 true,
                 true
         ));
 
-        ally.getWorld().spawnParticle(
+        Location location = ally.getLocation().add(0, 1.15, 0);
+        World world = ally.getWorld();
+
+        world.spawnParticle(
                 Particle.HEART,
-                ally.getLocation().add(0, 1.15, 0),
+                location,
                 2,
                 0.35,
                 0.45,
@@ -188,32 +239,38 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
                 0.02
         );
 
-        ally.getWorld().spawnParticle(
-                Particle.DUST,
-                ally.getLocation().add(0, 1.0, 0),
-                8,
+        world.spawnParticle(
+                Particle.END_ROD,
+                location,
+                5,
+                0.25,
                 0.35,
-                0.55,
-                0.35,
-                0.0,
-                BLESSING_DUST
+                0.25,
+                0.02
         );
+
+        spawnRainbowCloud(location, 10, 0.35, 0.55, 0.35);
     }
 
     private void harmEnemy(Player caster, Player enemy) {
         enemy.damage(ENEMY_DAMAGE_PER_PULSE, caster);
 
-        Vector knockback = enemy.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0);
+        Vector knockback = enemy.getLocation().toVector()
+                .subtract(caster.getLocation().toVector())
+                .setY(0);
 
         if (knockback.lengthSquared() > 0.001) {
-            knockback.normalize().multiply(0.12);
-            knockback.setY(0.05);
+            knockback.normalize().multiply(ENEMY_KNOCKBACK_HORIZONTAL);
+            knockback.setY(ENEMY_KNOCKBACK_VERTICAL);
             enemy.setVelocity(enemy.getVelocity().add(knockback));
         }
 
-        enemy.getWorld().spawnParticle(
+        Location location = enemy.getLocation().add(0, 1.0, 0);
+        World world = enemy.getWorld();
+
+        world.spawnParticle(
                 Particle.DAMAGE_INDICATOR,
-                enemy.getLocation().add(0, 1.0, 0),
+                location,
                 3,
                 0.25,
                 0.35,
@@ -221,27 +278,35 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
                 0.03
         );
 
-        enemy.getWorld().spawnParticle(
-                Particle.DUST,
-                enemy.getLocation().add(0, 1.0, 0),
-                8,
-                0.35,
-                0.55,
-                0.35,
-                0.0,
-                DAWN_DUST
+        world.spawnParticle(
+                Particle.CRIT,
+                location,
+                6,
+                0.3,
+                0.45,
+                0.3,
+                0.035
         );
+
+        spawnRainbowCloud(location, 8, 0.35, 0.5, 0.35);
     }
 
-    private void spawnRangeRing(Location center) {
+    private void renderChannelVisuals(Player caster, int ticks) {
+        Location center = caster.getLocation();
+
+        spawnOuterRangeCircle(center, ticks);
+        spawnGrowingPulseCircle(center, ticks);
+        spawnCasterSparkles(caster, ticks);
+    }
+
+    private void spawnOuterRangeCircle(Location center, int ticks) {
         World world = center.getWorld();
 
         if (world == null) {
-             return;
+            return;
         }
 
-        Location base = center.clone().add(0, 0.15, 0);
-
+        Location base = center.clone().add(0, 0.12, 0);
         int points = 72;
 
         for (int i = 0; i < points; i++) {
@@ -251,50 +316,135 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
 
             Location point = base.clone().add(x, 0, z);
 
-            Particle.DustOptions dust = i % 2 == 0 ? BLESSING_DUST : DAWN_DUST;
-
             world.spawnParticle(
                     Particle.DUST,
                     point,
                     1,
-                    0.02,
-                    0.02,
-                    0.02,
+                    0.01,
+                    0.01,
+                    0.01,
                     0.0,
-                    dust
+                    rainbowDust(i + ticks / 2L, 1.0f)
             );
         }
     }
 
-    private void spawnPulseBurst(Location center)  {
+    private void spawnGrowingPulseCircle(Location center, int ticks) {
         World world = center.getWorld();
 
         if (world == null) {
             return;
         }
 
-        Location burstCenter = center.clone().add(0, 0.1, 0);
+        int pulseTick = ticks % PULSE_INTERVAL_TICKS;
+        double progress = pulseTick / (double) PULSE_INTERVAL_TICKS;
+
+        double pulseRadius = Math.max(0.15, RADIUS * progress);
+        double yOffset = 0.18 + progress * 0.15;
+
+        Location base = center.clone().add(0, yOffset, 0);
+
+        int points = Math.max(12, (int) (pulseRadius * 14));
+
+        for (int i = 0; i < points; i++) {
+            double angle = (Math.PI * 2.0 * i) / points;
+            double x = Math.cos(angle) * pulseRadius;
+            double z = Math.sin(angle) * pulseRadius;
+
+            Location point = base.clone().add(x, 0, z);
+
+            world.spawnParticle(
+                    Particle.DUST,
+                    point,
+                    1,
+                    0.015,
+                    0.015,
+                    0.015,
+                    0.0,
+                    rainbowDust(i + ticks * 2L, 1.25f)
+            );
+        }
+
+        if (pulseTick == 0) {
+            world.spawnParticle(
+                    Particle.END_ROD,
+                    center.clone().add(0, 1.0, 0),
+                    18,
+                    0.75,
+                    0.45,
+                    0.75,
+                    0.035
+            );
+        }
+    }
+
+    private void spawnPulseImpact(Location center) {
+        World world = center.getWorld();
+
+        if (world == null) {
+            return;
+        }
+
+        Location burstCenter = center.clone().add(0, 1.0, 0);
 
         world.spawnParticle(
                 Particle.END_ROD,
                 burstCenter,
-                22,
-                1.2,
-                0.6,
-                1.2,
+                16,
+                0.9,
+                0.45,
+                0.9,
                 0.035
         );
 
-        world.spawnParticle(
-                Particle.DUST,
-                burstCenter,
-                32,
-                1.5,
-                0.75,
-                1.5,
-                0.0,
-                BLESSING_DUST
-        );
+        spawnRainbowCloud(burstCenter, 28, 1.0, 0.55, 1.0);
+    }
+
+    private void spawnCasterSparkles(Player caster, int ticks) {
+        World world = caster.getWorld();
+        Location center = caster.getLocation().add(0, 1.25, 0);
+
+        if (ticks % 2 == 0) {
+            world.spawnParticle(
+                    Particle.END_ROD,
+                    center,
+                    2,
+                    0.25,
+                    0.55,
+                    0.25,
+                    0.02
+            );
+        }
+
+        if (ticks % 5 == 0) {
+            spawnRainbowCloud(center, 8, 0.35, 0.75, 0.35);
+        }
+    }
+
+    private void spawnRainbowCloud(Location location, int count, double offsetX, double offsetY, double offsetZ) {
+        World world = location.getWorld();
+
+        if (world == null) {
+            return;
+        }
+
+        for (int i = 0; i < count; i++) {
+            world.spawnParticle(
+                    Particle.DUST,
+                    location,
+                    1,
+                    offsetX,
+                    offsetY,
+                    offsetZ,
+                    0.0,
+                    rainbowDust(i + world.getGameTime(), 1.0f)
+            );
+        }
+    }
+
+    private Particle.DustOptions rainbowDust(long index, float size) {
+        Color color = UNICORN_COLORS[(int) (Math.abs(index) % UNICORN_COLORS.length)];
+        return new Particle.DustOptions(color, size);
     }
 
     private Team getKingdomTeam(Player player) {
@@ -341,7 +491,6 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
             cooldowns.put(casterId, System.currentTimeMillis() + COOLDOWN * 1000L);
         }
 
-
         if (caster != null && caster.isOnline()) {
             if (showEndMessage) {
                 caster.sendMessage(ChatColor.LIGHT_PURPLE + "Unicorn's Blessing fades.");
@@ -361,6 +510,7 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
         }
 
         channel.cancel();
+
         if (caster.getGameMode() != GameMode.CREATIVE) {
             cooldowns.put(casterId, System.currentTimeMillis() + COOLDOWN * 1000L);
         }
@@ -369,8 +519,119 @@ public class UnicornsBlessingAbility implements CommandCharterAbility {
         caster.getWorld().playSound(caster.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.55f, 1.35f);
     }
 
+    private void totemSave(Player player) {
+        double saveHealth = Math.min(player.getMaxHealth(), TOTEM_SAVE_HEALTH);
+
+        player.setHealth(saveHealth);
+        player.setFireTicks(0);
+
+        player.addPotionEffect(new PotionEffect(
+                PotionEffectType.REGENERATION,
+                TOTEM_REGEN_TICKS,
+                1,
+                true,
+                true,
+                true
+        ));
+
+        player.addPotionEffect(new PotionEffect(
+                PotionEffectType.ABSORPTION,
+                TOTEM_ABSORPTION_TICKS,
+                1,
+                true,
+                true,
+                true
+        ));
+
+        player.addPotionEffect(new PotionEffect(
+                PotionEffectType.RESISTANCE,
+                TOTEM_RESISTANCE_TICKS,
+                0,
+                true,
+                true,
+                true
+        ));
+
+        player.getWorld().playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 0.3f, 1.0f);
+        player.getWorld().playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 0.5f, 1.0f);
+        player.sendMessage(ChatColor.LIGHT_PURPLE + "Unicorn's Blessing shatters to save you.");
+    }
+
     public void clearCooldown(UUID playerId) {
         cooldowns.remove(playerId);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onMove(PlayerMoveEvent event) {
+        if (!REQUIRES_CONCENTRATION) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+
+        if (!activeChannels.containsKey(player.getUniqueId())) {
+            return;
+        }
+
+        Location from = event.getFrom();
+        Location to = event.getTo();
+
+        if (to == null) {
+            return;
+        }
+
+        double dx = from.getX() - to.getX();
+        double dy = from.getY() - to.getY();
+        double dz = from.getZ() - to.getZ();
+
+        double movedDistanceSquared = dx * dx + dy * dy + dz * dz;
+
+        if (movedDistanceSquared <= CONCENTRATION_MOVE_EPSILON) {
+            return;
+        }
+
+        event.setTo(new Location(
+                from.getWorld(),
+                from.getX(),
+                from.getY(),
+                from.getZ(),
+                to.getYaw(),
+                to.getPitch()
+        ));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+
+        if (!activeChannels.containsKey(player.getUniqueId())) {
+            return;
+        }
+
+        cancelChannel(player);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onCasterFatalDamage(EntityDamageEvent event) {
+        if (!CASTER_TOTEM_WHILE_CHANNELING) {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+
+        if (!activeChannels.containsKey(player.getUniqueId())) {
+            return;
+        }
+
+        if (player.getHealth() - event.getFinalDamage() > 0) {
+            return;
+        }
+
+        event.setCancelled(true);
+        totemSave(player);
+        cancelChannel(player);
     }
 
     private class UnicornsBlessingCancelAbility implements CommandCharterAbility {

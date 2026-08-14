@@ -59,19 +59,24 @@ public final class CharterRegistry {
                     new BlessingOfTheStarsAbility(plugin)
                 )
         ));
-//        register(new Charter(
-//                "jinxitsbinx",
-//                "Jinxitsbinx",
-//                List.of(
-//                        unicornsBlessingAbility,
-//                        unicornsBlessingAbility.createCancelAbility()
-//                )
-//        ));
+        register(new Charter(
+                "jinxitsbinx",
+                "Jinxitsbinx",
+                List.of(
+                        unicornsBlessingAbility,
+                        unicornsBlessingAbility.createCancelAbility()
+                )
+        ));
 
 
         registerCustomSetMessage(
                 "bulldozerplays",
                 "&r&9✦ &fThe stars twinkle above you. &7Something unseen stirs within you, but its meaning remains unclear."
+        );
+
+        registerCustomSetMessage(
+                "jinxitsbinx",
+                "&r&d✦ &fA gentle warmth washes over you. &7You suddenly feel at peace..."
         );
     }
 
