@@ -1,8 +1,10 @@
 package com.thatguyjack.bannerfallCharters.core;
 
 import com.thatguyjack.bannerfallCharters.BannerfallCharters;
+import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,6 +61,11 @@ public final class CharterManager {
     public void setCharter(OfflinePlayer player, String charterId) {
         UUID uuid = player.getUniqueId();
 
+        if ("thatguyjack".equalsIgnoreCase(playerCharters.get(uuid))
+                && !charterId.equalsIgnoreCase("thatguyjack")) {
+            clearThatGuyJackStealth(uuid);
+        }
+
         playerCharters.put(uuid, charterId.toLowerCase());
 
         String path = "charters.players." + uuid;
@@ -69,11 +76,16 @@ public final class CharterManager {
     public boolean removeCharter(OfflinePlayer player) {
         UUID uuid = player.getUniqueId();
 
-        boolean existed = playerCharters.remove(uuid) != null;
+        String previousCharter = playerCharters.remove(uuid);
+
+        if ("thatguyjack".equalsIgnoreCase(previousCharter)) {
+            clearThatGuyJackStealth(uuid);
+        }
+
         plugin.getConfig().set("charters.players." + uuid, null);
         plugin.saveConfig();
 
-        return existed;
+        return previousCharter != null;
     }
 
     public Optional<String> getCharter(UUID uuid) {
@@ -86,5 +98,19 @@ public final class CharterManager {
 
     public Map<UUID, String> getAllCharters() {
         return Map.copyOf(playerCharters);
+    }
+
+    private void clearThatGuyJackStealth(UUID uuid) {
+        Player player = Bukkit.getPlayer(uuid);
+
+        if (player == null) {
+            return;
+        }
+
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            if (!viewer.getUniqueId().equals(uuid)) {
+                viewer.showPlayer(plugin, player);
+            }
+        }
     }
 }
